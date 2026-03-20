@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <a href="../index.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="products.html">Products</a>
+        <a href="services.html">Services</a>
+        <a href="certification&quality.html">Certificates</a>
+        <a href="order.html">Order Now</a>
+        <div class="dropdown">
+          <button class="dropdown-btn">
+            <i class="fa-regular fa-circle-user"></i> My Account
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+            <a href="sign.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
+            <a href="order-history.html"><i class="fa-solid fa-clock-rotate-left"></i> Order History</a>
+            <a href="#" id="logout-btn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+          </div>
+        </div>
+      </nav>
+    </section>
+    <section class="hero">
+      <div class="hero-text">
+        <i class="fa-solid fa-credit-card" style="color:white; font-size:4rem; margin-bottom:20px; display:block;"></i>
+        <h1>Payment</h1>
+        <p>Choose your preferred payment method</p>
+      </div>
+    </section>
+  </header>
+
+  <section style="padding: 60px 80px; max-width: 800px; margin: 0 auto;">
+
+    <!-- Order Summary -->
+    <div id="order-summary-box" style="background: var(--off-white); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 40px;">
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--blue-light);">Order Summary</h2>
+      <div id="summary-details" style="font-size: 14px; line-height: 2;"></div>
+    </div>
+
+    <!-- Payment Methods -->
+    <h2 style="font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 24px;">Select Payment Method</h2>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- MTN Mobile Money -->
+      <div class="payment-option" id="mtn-option" onclick="selectPayment('mtn')">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 56px; height: 56px; background: #FFD700; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #333; flex-shrink: 0;">MTN</div>
+          <div>
+            <strong style="font-size: 16px;">MTN Mobile Money</strong>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Pay using your MTN MoMo account</p>
+          </div>
+        </div>
+        <div class="payment-details" id="mtn-details" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; margin-bottom: 8px;"><strong>Send payment to:</strong></p>
+          <p style="font-size: 16px; font-weight: 700; color: var(--blue-deep);">0243 108 878</p>
+          <p style="font-size: 13px; color: var(--text-muted);">Account Name: White Water Wells LTD</p>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">After payment, enter your transaction ID below and click confirm.</p>
+          <input type="text" id="mtn-transaction" placeholder="Enter MTN transaction ID" style="width:100%; margin-top:12px; padding:10px; border:1.5px solid var(--border); border-radius:8px; font-size:14px;">
+        </div>
+      </div>
+
+      <!-- Vodafone Cash -->
+      <div class="payment-option" id="vodafone-option" onclick="selectPayment('vodafone')">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 56px; height: 56px; background: #e60000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: white; flex-shrink: 0;">VODA</div>
+          <div>
+            <strong style="font-size: 16px;">Vodafone Cash</strong>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Pay using your Vodafone Cash account</p>
+          </div>
+        </div>
+        <div class="payment-details" id="vodafone-details" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; margin-bottom: 8px;"><strong>Send payment to:</strong></p>
+          <p style="font-size: 16px; font-weight: 700; color: var(--blue-deep);">0244 483 793</p>
+          <p style="font-size: 13px; color: var(--text-muted);">Account Name: White Water Wells LTD</p>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">After payment, enter your transaction ID below and click confirm.</p>
+          <input type="text" id="vodafone-transaction" placeholder="Enter Vodafone transaction ID" style="width:100%; margin-top:12px; padding:10px; border:1.5px solid var(--border); border-radius:8px; font-size:14px;">
+        </div>
+      </div>
+
+      <!-- AirtelTigo -->
+      <div class="payment-option" id="airteltigo-option" onclick="selectPayment('airteltigo')">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 56px; height: 56px; background: #e83e8c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 10px; color: white; flex-shrink: 0;">AIRTEL</div>
+          <div>
+            <strong style="font-size: 16px;">AirtelTigo Money</strong>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Pay using your AirtelTigo Money account</p>
+          </div>
+        </div>
+        <div class="payment-details" id="airteltigo-details" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; margin-bottom: 8px;"><strong>Send payment to:</strong></p>
+          <p style="font-size: 16px; font-weight: 700; color: var(--blue-deep);">0243 108 878</p>
+          <p style="font-size: 13px; color: var(--text-muted);">Account Name: White Water Wells LTD</p>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">After payment, enter your transaction ID below and click confirm.</p>
+          <input type="text" id="airteltigo-transaction" placeholder="Enter AirtelTigo transaction ID" style="width:100%; margin-top:12px; padding:10px; border:1.5px solid var(--border); border-radius:8px; font-size:14px;">
+        </div>
+      </div>
+
+      <!-- Card Payment -->
+      <div class="payment-option" id="card-option" onclick="selectPayment('card')">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 56px; height: 56px; background: var(--blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fa-solid fa-credit-card" style="color: var(--blue-mid); font-size: 20px;"></i>
+          </div>
+          <div>
+            <strong style="font-size: 16px;">Card Payment</strong>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Visa / Mastercard</p>
+          </div>
+        </div>
+        <div class="payment-details" id="card-details" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Card payments are processed securely. Our team will contact you with a payment link.</p>
+          <p style="font-size: 14px;"><strong>Contact us to process card payment:</strong></p>
+          <p style="font-size: 14px; margin-top: 8px;"><i class="fa-solid fa-phone" style="color: var(--blue-mid);"></i> +233 243 108 878</p>
+          <p style="font-size: 14px;"><i class="fa-solid fa-envelope" style="color: var(--blue-mid);"></i> whitewaterwellscompanyltd@gmail.com</p>
+        </div>
+      </div>
+
+      <!-- Cash on Delivery -->
+      <div class="payment-option" id="cash-option" onclick="selectPayment('cash')">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 56px; height: 56px; background: #e6f4ea; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fa-solid fa-money-bill-wave" style="color: #16a34a; font-size: 20px;"></i>
+          </div>
+          <div>
+            <strong style="font-size: 16px;">Cash on Delivery</strong>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Pay when your order arrives</p>
+          </div>
+        </div>
+        <div class="payment-details" id="cash-details" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; color: var(--text-muted);">You will pay in cash when your order is delivered. Please have the exact amount ready.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="input-error-msg" id="err-payment" style="margin-top: 16px;"></p>
+
+    <button class="submit-btn" onclick="confirmPayment()" style="margin-top: 32px;">
+      <i class="fa-solid fa-circle-check"></i> Confirm Order & Payment Method
+    </button>
+
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../index.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="products.html">Products</a>
+        <a href="order.html">Order Now</a>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>

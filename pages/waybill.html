@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waybill</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <span id="staff-welcome" style="font-size:14px; font-weight:600; color: var(--blue-mid);"></span>
+        <a href="#" id="staff-logout-btn" style="font-size:14px; font-weight:500; color: var(--text-mid); padding: 8px 14px; border-radius: 6px; background: var(--blue-light);">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+    </section>
+
+    <section class="hero" style="min-height: 300px;">
+      <div class="hero-text">
+        <i class="fa-solid fa-truck" style="color:white; font-size:4rem; margin-bottom:20px; display:block;"></i>
+        <h1>Waybill</h1>
+        <p>Fill out and submit the delivery waybill</p>
+      </div>
+    </section>
+  </header>
+
+  <section style="padding: 60px 80px; max-width: 900px; margin: 0 auto;">
+
+    <!-- Waybill Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid var(--blue-light);">
+      <div>
+        <h2 style="font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px;">White Water Wells LTD</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">P.O. Box 18204, Accra</p>
+        <p style="font-size: 13px; color: var(--text-muted);">Comm 25 Peace B Down, Accra-Prampram Road</p>
+        <p style="font-size: 13px; color: var(--text-muted);">GPS: GN-0709-4736</p>
+        <p style="font-size: 13px; color: var(--text-muted);">0243108878 / 0244483793</p>
+      </div>
+      <div style="text-align: right;">
+        <h2 style="font-family: 'Playfair Display', serif; font-size: 28px; color: var(--blue-mid);">WAYBILL</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">No: <span id="waybill-number" style="font-weight: 700; color: var(--text-dark);">WWW2026-0001</span></p>
+      </div>
+    </div>
+
+    <form id="waybillForm">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="to">To*</label>
+          <input type="text" id="to" placeholder="Recipient name or company" name="to" required>
+          <p class="input-error-msg" id="err-to">Please enter recipient</p>
+        </div>
+        <div class="form-group">
+          <label for="driver-name">Driver's Name*</label>
+          <input type="text" id="driver-name" placeholder="Driver's full name" name="driver-name" required>
+          <p class="input-error-msg" id="err-driver">Please enter driver's name</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address*</label>
+        <input type="text" id="address" placeholder="Delivery address" name="address" required>
+        <p class="input-error-msg" id="err-address">Please enter address</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="car-number">Car Number*</label>
+          <input type="text" id="car-number" placeholder="e.g. GR-1234-20" name="car-number" required>
+          <p class="input-error-msg" id="err-car">Please enter car number</p>
+        </div>
+        <div class="form-group">
+          <label for="waybill-date">Date*</label>
+          <input type="date" id="waybill-date" name="waybill-date" required>
+          <p class="input-error-msg" id="err-date">Please select a date</p>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="form-group-title" style="margin-top: 32px;">
+        <i class="fa-solid fa-box"></i>
+        <h2>Items</h2>
+      </div>
+
+      <div style="border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; background: var(--blue-mid); color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+          <span>Quantity</span>
+          <span>Description</span>
+          <span>Remarks</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0;">
+          <input type="text" id="quantity" placeholder="e.g. 100 bags" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          <input type="text" id="description" placeholder="Sachet Water 500ml" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          <input type="text" id="remarks" placeholder="Optional" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+        </div>
+      </div>
+      <p class="input-error-msg" id="err-items">Please fill in quantity and description</p>
+
+      <!-- Signatures -->
+      <div class="form-group-title" style="margin-top: 32px;">
+        <i class="fa-solid fa-signature"></i>
+        <h2>Signatures</h2>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="despatched-by">Despatched By*</label>
+          <input type="text" id="despatched-by" placeholder="Name of person despatching" name="despatched-by" required>
+          <p class="input-error-msg" id="err-despatched">Please enter name</p>
+        </div>
+        <div class="form-group">
+          <label for="received-by">Received By</label>
+          <input type="text" id="received-by" placeholder="Name of person receiving" name="received-by">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="driver-signature">Driver's Signature</label>
+        <input type="text" id="driver-signature" placeholder="Driver's name as signature" name="driver-signature">
+      </div>
+
+      <p class="input-error-msg" id="err-waybill"></p>
+      <div id="waybill-success" style="display:none; background:#e6f4ea; color:green; border:1px solid green; padding:12px; border-radius:8px; margin-bottom:16px; text-align:center; font-weight:600;">
+        <i class="fa-solid fa-circle-check"></i> Waybill submitted successfully! Email sent to company.
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="fa-solid fa-paper-plane"></i> Submit Waybill
+      </button>
+      <p class="form-note">Submitting this waybill will send a copy to the company email automatically.</p>
+
+    </form>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>

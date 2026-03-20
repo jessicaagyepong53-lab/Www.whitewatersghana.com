@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>Order History</title>
   <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="../src/style.css">
 </head>
 <body>
   <header>
-    <!-- Navbar -->
     <section class="navbar">
       <div class="nav-brand">
         <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
@@ -25,8 +24,6 @@
         <a href="services.html">Services</a>
         <a href="certification&quality.html">Certificates</a>
         <a href="order.html">Order Now</a>
-
-        <!-- My Account Dropdown -->
         <div class="dropdown">
           <button class="dropdown-btn">
             <i class="fa-regular fa-circle-user"></i> My Account
@@ -35,73 +32,40 @@
           <div class="dropdown-menu">
             <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
             <a href="../index.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
-            <a href="order-history.html"><i class="fa-solid fa-clock-rotate-left"></i> Order History</a>
             <a href="#" id="logout-btn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-          </div>
         </div>
       </nav>
     </section>
+
+    <section class="hero">
+  <div class="hero-text">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <h1>Order History</h1>
+    <p>View all your past orders</p>
+  </div>
+</section>
   </header>
 
-  <!-- Login Card -->
-  <section class="auth-section">
-    <div class="auth-card">
+  <section style="padding: 60px 80px; max-width: 1100px; margin: 0 auto;">
 
-      <div class="auth-header">
-        <div class="auth-icon">
-          <i class="fa-solid fa-droplet"></i>
-        </div>
-        <h1>Welcome Back</h1>
-        <p>Sign in to your White Water Wells account</p>
-      </div>
-
-      <form id="loginForm">
-
-        <div class="form-group">
-          <label for="email">
-            <i class="fa-regular fa-envelope"></i> Email Address
-          </label>
-          <input type="email" id="email" placeholder="you@example.com" name="email" required>
-          <p class="input-error-msg" id="err-email">Please enter your email address</p>
-        </div>
-
-        <div class="form-group">
-  <div class="label-row">
-    <label for="password">
-      <i class="fa-solid fa-lock"></i> Password
-    </label>
-    <a href="forgot-password.html" class="forgot-link">Forgot Password?</a>
-  </div>
-  <div style="position: relative;">
-    <input type="password" id="password" placeholder="••••••••••" name="password" required>
-    <i class="fa-regular fa-eye toggle-password" data-target="password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color: gray;"></i>
-  </div>
-  <p class="input-error-msg" id="err-password">Please enter your password</p>
-</div>
-
-        <div class="form-check">
-          <input type="checkbox" id="remember" name="remember">
-          <label for="remember">Remember Me</label>
-        </div>
-        
-<!-- Above submit button -->
- <p class="input-error-msg" id="err-login"></p>
- <button type="submit" class="submit-btn">
-  <i class="fa-solid fa-right-to-bracket"></i> Sign In
-</button>
-
-        <p class="auth-switch">
-          Don't have an account? <a href="sign.html">Sign up now</a>
-        </p>
-
-      </form>
-
-      <p class="form-note">By signing in, you agree to our Terms of Service and Privacy Policy</p>
-
+    <div id="loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+      <p>Loading your orders...</p>
     </div>
+
+    <div id="no-orders" style="display:none; text-align: center; padding: 60px 40px;">
+      <i class="fa-solid fa-box-open" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+      <h2 style="font-family: 'Playfair Display', serif; margin-bottom: 12px;">No Orders Yet</h2>
+      <p style="color: var(--text-muted); margin-bottom: 24px;">You haven't placed any orders yet.</p>
+      <a href="order.html" class="submit-btn" style="text-decoration:none; display:inline-flex; width:auto; padding: 14px 32px;">
+        <i class="fa-solid fa-cart-shopping"></i> Place Your First Order
+      </a>
+    </div>
+
+    <div id="orders-container"></div>
+
   </section>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-inner">
       <div class="footer-brand">
@@ -109,7 +73,6 @@
         <h2>WHITE WATER WELLS LTD</h2>
         <p>Pure. Reliable. Refreshing.</p>
       </div>
-
       <div class="footer-links">
         <h3>Quick Links</h3>
         <a href="../home.html">Home</a>
@@ -119,14 +82,12 @@
         <a href="certification&quality.html">Certificates</a>
         <a href="order.html">Order Now</a>
       </div>
-
       <div class="footer-services">
         <h3>Services</h3>
         <p>Delivery</p>
         <p>Wholesale</p>
         <p>Retail</p>
       </div>
-
       <div class="footer-contact">
         <h3>Contact Info</h3>
         <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
@@ -135,11 +96,11 @@
         <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
       </div>
     </div>
-
     <div class="footer-bottom">
       <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
     </div>
   </footer>
+
   <script src="../src/script.js"></script>
 </body>
 </html>

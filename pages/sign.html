@@ -30,15 +30,16 @@
 
         <!-- My Account Dropdown -->
         <div class="dropdown">
-          <button class="dropdown-btn">
-            <i class="fa-regular fa-circle-user"></i> My Account
-            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-          </button>
-          <div class="dropdown-menu">
-            <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-            <a href="sign.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
-          </div>
-        </div>
+  <button class="dropdown-btn">
+    <i class="fa-regular fa-circle-user"></i> My Account
+    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+  </button>
+  <div class="dropdown-menu">
+    <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+    <a href="sign.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
+    <a href="#" id="logout-btn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+  </div>
+</div>
       </nav>
     </section>
 
@@ -56,13 +57,14 @@
         <p>Join White Water Wells LTD today</p>
       </div>
 
-      <form action="" method="POST">
+      <form id="signupForm">
 
         <div class="form-group">
           <label for="full-name">
             <i class="fa-regular fa-user"></i> Full Name*
           </label>
           <input type="text" id="full-name" placeholder="Kofi Owusu" name="full-name" required>
+          <p class="input-error-msg" id="err-fullname">Please enter your full name</p>
         </div>
 
         <div class="form-group">
@@ -70,6 +72,7 @@
             <i class="fa-regular fa-envelope"></i> Email Address*
           </label>
           <input type="email" id="email" placeholder="kofiowusu@gmail.com" name="email" required>
+          <p class="input-error-msg" id="err-email">Please enter a valid email address</p>
         </div>
 
         <div class="form-group">
@@ -77,27 +80,65 @@
             <i class="fa-solid fa-phone"></i> Phone Number*
           </label>
           <input type="text" id="phone" placeholder="+233 245 678 901" name="phone" required>
+          <p class="input-error-msg" id="err-phone">Please enter your phone number</p>
         </div>
 
         <div class="form-group">
-          <label for="password">
-            <i class="fa-solid fa-lock"></i> Password*
+  <label for="password">
+    <i class="fa-solid fa-lock"></i> Password*
+  </label>
+  <div style="position: relative;">
+    <input type="password" id="password" placeholder="••••••••••" name="password" required>
+    <i class="fa-regular fa-eye toggle-password" data-target="password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color: gray;"></i>
+  </div>
+  <div class="password-rules">
+    <p id="rule-length" class="rule">✗ At least 8 characters</p>
+    <p id="rule-upper" class="rule">✗ At least one uppercase letter</p>
+    <p id="rule-number" class="rule">✗ At least one number</p>
+  </div>
+</div>
+
+<div class="form-group">
+  <label for="confirm-password">
+    <i class="fa-solid fa-lock"></i> Confirm Password*
+  </label>
+  <div style="position: relative;">
+    <input type="password" id="confirm-password" placeholder="••••••••••" name="confirm-password" required>
+    <i class="fa-regular fa-eye toggle-password" data-target="confirm-password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color: gray;"></i>
+  </div>
+  <p id="password-match" style="font-size: 13px; margin-top: 6px;"></p>
+</div>
+          
+        
+        <div class="form-group">
+          <label for="security-question">
+            <i class="fa-solid fa-shield"></i> Security Question*
           </label>
-          <input type="password" id="password" placeholder="••••••••••" name="password" required>
-          <span class="field-hint">Must be at least 8 characters</span>
+          <select id="security-question" name="security-question" required>
+            <p class="input-error-msg" id="err-question">Please select a security question</p>
+            <option value="">-- Choose a security question --</option>
+            <option value="mothers-maiden-name">What is your mother's maiden name?</option>
+            <option value="first-pet">What was the name of your first pet?</option>
+            <option value="primary-school">What primary school did you attend?</option>
+            <option value="childhood-nickname">What was your childhood nickname?</option>
+            <option value="first-car">What was the model of your first car?</option>
+          </select>
         </div>
 
         <div class="form-group">
-          <label for="confirm-password">
-            <i class="fa-solid fa-lock"></i> Confirm Password*
+          <label for="security-answer">
+            <i class="fa-solid fa-key"></i> Security Answer*
           </label>
-          <input type="password" id="confirm-password" placeholder="••••••••••" name="confirm-password" required>
+          <input type="text" id="security-answer" placeholder="Your answer" name="security-answer" required>
+          <p class="input-error-msg" id="err-answer">Please enter your security answer</p>
         </div>
 
         <div class="form-check">
           <input type="checkbox" id="terms" name="terms" required>
           <label for="terms">I agree to the Terms of Service and Privacy Policy</label>
         </div>
+        
+        <div id="signup-message" style="display:none; padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 10px;"></div>
 
         <button type="submit" class="submit-btn">
           <i class="fa-solid fa-user-plus"></i> Create Account
@@ -160,5 +201,6 @@
       <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
     </div>
   </footer>
+  <script src="../src/script.js"></script>
 </body>
 </html>

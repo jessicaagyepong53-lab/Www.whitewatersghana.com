@@ -257,6 +257,12 @@ img { max-width: 100%; display: block; }
   margin-bottom: 20px;
 }
 
+.hero-text .fa-clock-rotate-left {
+  color: white;
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
 .hero-buttons {
   display: flex;
   gap: 16px;
@@ -1134,16 +1140,7 @@ img { max-width: 100%; display: block; }
 /* ============================================
    CONTACT ROW
    ============================================ */
-.order-contact {
-  flex: 1;
-  min-width: 260px;
-  background: var(--off-white);
-  border-radius: var(--radius-lg);
-  padding: 36px 28px;
-  position: sticky;
-  top: 100px;
-}
- 
+
 .order-contact h3 {
   font-family: 'Playfair Display', serif;
   font-size: 22px;
@@ -1557,4 +1554,193 @@ footer h3 {
 
   footer           { padding: 40px 24px 20px; }
   .footer-inner    { flex-direction: column; gap: 32px; }
+}
+.password-rules {
+  margin-top: 6px;
+}
+
+.rule {
+  font-size: 13px;
+  color: red;
+  margin: 2px 0;
+  transition: color 0.3s;
+}
+
+.rule.passed {
+  color: green;
+}
+.input-error {
+  border: 1px solid red !important;
+}
+
+.input-error-msg {
+  font-size: 12px;
+  color: red;
+  margin-top: 4px;
+  display: none;
+}
+
+.input-error-msg.show {
+  display: block;
+}
+/* ============================================
+   ORDER HISTORY
+   ============================================ */
+.order-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  border-left: 4px solid var(--blue-mid);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.order-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-card-header h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.order-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.order-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.order-detail-item label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.order-detail-item p {
+  font-size: 14px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.order-total-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--blue-deep);
+}
+
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e6f4ea;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+/* ============================================
+   PAYMENT PAGE
+   ============================================ */
+.payment-option {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.payment-option:hover {
+  border-color: var(--blue-mid);
+  box-shadow: var(--shadow-sm);
+}
+
+.payment-option.selected {
+  border-color: var(--blue-mid);
+  background: var(--blue-light);
+  box-shadow: 0 0 0 3px rgba(26,111,196,0.1);
+}
+/* ============================================
+   ADMIN DASHBOARD
+   ============================================ */
+.filter-btn {
+  background: var(--off-white);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text-mid);
+}
+
+.filter-btn:hover {
+  background: var(--blue-light);
+  border-color: var(--blue-mid);
+  color: var(--blue-deep);
+}
+
+.active-filter {
+  background: var(--blue-mid) !important;
+  border-color: var(--blue-mid) !important;
+  color: white !important;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-paid {
+  background: #e6f4ea;
+  color: #16a34a;
+}
+
+.status-cancelled {
+  background: #fde8e8;
+  color: #dc2626;
 }
