@@ -1,3 +1,5 @@
+const API = "https://white-water-wells.onrender.com";
+
 function showMessage(elementId, message, type) {
   const el = document.getElementById(elementId);
   if (!el) return;
