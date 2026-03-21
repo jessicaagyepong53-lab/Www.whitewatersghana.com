@@ -232,9 +232,9 @@ const WaybillSchema = new mongoose.Schema({
   despatchedBy:    String,
   receivedBy:      String,
   driverSignature: String,
-  submittedBy:     String
+  submittedBy:     String,
+  amount:          Number
 }, { timestamps: true });
-const Waybill = mongoose.model("Waybill", WaybillSchema);
 
 // ============================================
 // AUTH ROUTES
@@ -514,6 +514,25 @@ app.get("/waybills/count", async (req, res) => {
     const count = await Waybill.countDocuments();
     res.json({ count });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// GET /admin/analytics/custom-waybills
+app.get("/admin/analytics/custom-waybills", async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59);
+
+    const waybills = await Waybill.find({
+      createdAt: { $gte: fromDate, $lte: toDate }
+    });
+
+    const total = waybills.reduce((sum, w) => sum + (w.amount || 0), 0);
+    res.json({ total, count: waybills.length });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });

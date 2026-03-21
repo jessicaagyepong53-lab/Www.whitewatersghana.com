@@ -1,5 +1,3 @@
-const API = "http://127.0.0.1:5000";
-
 function showMessage(elementId, message, type) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -503,7 +501,7 @@ if (ordersContainer) {
     const productNames = { "sachet-water": "Sachet Water - 500ml", "bulk-purchase": "Sachet Water - Bulk Purchase" };
     const orderTypeNames = { "one-time": "One-Time Purchase", "weekly": "Weekly Subscription", "biweekly": "Bi-Weekly Subscription", "monthly": "Monthly Subscription" };
 
-    fetch(`${API}/orders/${email}`)
+    fetch(`${process.env.API}/orders/${email}`)
       .then(res => res.json())
       .then(data => {
         document.getElementById("loading").style.display = "none";
@@ -584,7 +582,7 @@ function confirmPayment() {
   order.paymentMethod = paymentNames[selectedPayment];
   order.transactionId = transactionId;
 
-  fetch(`${API}/order`, {
+  fetch(`${process.env.API}/order`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order)
@@ -709,7 +707,7 @@ if (waybillForm) {
   }
 
   let waybillNum = "Loading...";
-  fetch(`${API}/waybills/count`)
+  fetch(`${process.env.API}/waybills/count`)
     .then(res => res.json())
     .then(data => {
       waybillNum = `WWW2026${String(data.count + 1).padStart(4, "0")}`;
@@ -735,6 +733,12 @@ if (waybillForm) {
     const despatchedBy = document.getElementById("despatched-by").value.trim();
     const receivedBy = document.getElementById("received-by").value.trim();
     const driverSignature = document.getElementById("driver-signature").value.trim();
+    const amount = document.getElementById("waybill-amount").value;
+if (!amount || amount <= 0) { 
+  document.getElementById("waybill-amount").classList.add("input-error"); 
+  document.getElementById("err-amount").classList.add("show"); 
+  hasError = true; 
+}
 
     let hasError = false;
     if (!to) { document.getElementById("to").classList.add("input-error"); document.getElementById("err-to").classList.add("show"); hasError = true; }
@@ -778,7 +782,13 @@ if (waybillForm) {
     }
   });
 }
-
+body: JSON.stringify({
+  to, driverName, address, carNumber, date,
+  quantity, description, remarks,
+  despatchedBy, receivedBy, driverSignature,
+  waybillNumber: waybillNum, submittedBy: staffName,
+  amount: parseFloat(document.getElementById("waybill-amount").value) || 0
+})
 
 // ============================================
 // ORDER CONFIRMATION PAGE
@@ -793,7 +803,7 @@ if (confirmationContent) {
     const productNames = { "sachet-water": "Sachet Water - 500ml", "bulk-purchase": "Sachet Water - Bulk Purchase" };
     const discountMap = { "weekly": 10, "biweekly": 15, "monthly": 20, "one-time": 0 };
 
-    fetch(`${API}/order/${orderId}`)
+    fetch(`${process.env.API}/order/${orderId}`)
       .then(res => res.json())
       .then(data => {
         document.getElementById("loading").style.display = "none";
@@ -956,7 +966,7 @@ if (ordersList) {
     }
   };
 
-  fetch(`${API}/admin/orders`)
+  fetch(`${process.env.API}/admin/orders`)
     .then(res => res.json())
     .then(data => {
       document.getElementById("loading-orders").style.display = "none";
@@ -973,3 +983,131 @@ if (ordersList) {
       document.getElementById("loading-orders").innerHTML = `<p style="color:red; text-align:center;">Could not load orders. Make sure the server is running.</p>`;
     });
 }
+// ANALYTICS
+let analyticsData = null;
+let currentPeriod = 'today';
+
+function showPeriod(period) {
+  currentPeriod = period;
+  document.querySelectorAll('[id^="tab-"]').forEach(btn => btn.classList.remove("active-filter"));
+  document.getElementById(`tab-${period}`).classList.add("active-filter");
+
+  const customRange = document.getElementById("custom-range");
+  if (period === 'custom') { customRange.style.display = "block"; return; }
+  customRange.style.display = "none";
+
+  if (!analyticsData) return;
+
+  const d = analyticsData[period];
+  const periodLabels = { today: "Today", week: "This Week", month: "This Month", year: "This Year" };
+  const compKeys = { today: "lastWeek", week: "lastWeek", month: "lastMonth", year: "lastYear" };
+
+  // Online orders
+  document.getElementById("online-paid-total").textContent = `GH₵${d.online.paid.toFixed(2)}`;
+  document.getElementById("online-paid-count").innerHTML = `<i class="fa-solid fa-circle-check"></i> ${d.online.paidCount} paid`;
+  document.getElementById("online-pending-total").innerHTML = `<i class="fa-solid fa-clock"></i> GH₵${d.online.pending.toFixed(2)} pending`;
+  document.getElementById("online-pending-count").textContent = `${d.online.pendingCount} pending orders`;
+
+  // Waybills
+  document.getElementById("waybill-total").textContent = `GH₵${d.waybills.total.toFixed(2)}`;
+  document.getElementById("waybill-count").textContent = `${d.waybills.count} deliveries`;
+
+  // Invoices (same as online orders)
+  document.getElementById("invoice-paid-total").textContent = `GH₵${d.online.paid.toFixed(2)}`;
+  document.getElementById("invoice-paid-count").innerHTML = `<i class="fa-solid fa-circle-check"></i> ${d.online.paidCount} paid invoices`;
+  document.getElementById("invoice-pending-total").innerHTML = `<i class="fa-solid fa-clock"></i> GH₵${d.online.pending.toFixed(2)} unpaid`;
+
+  // Grand total
+  document.getElementById("grand-total").textContent = `GH₵${d.grandTotal.toFixed(2)}`;
+  document.getElementById("period-label").textContent = `Showing: ${periodLabels[period]}`;
+
+  // Profit comparison
+  const prev = analyticsData[compKeys[period]];
+  const prevTotal = prev.online + prev.waybills;
+  const diff = d.grandTotal - prevTotal;
+  const pct = prevTotal > 0 ? ((diff / prevTotal) * 100).toFixed(1) : 0;
+  const isProfit = diff >= 0;
+
+  document.getElementById("profit-icon").className = `fa-solid fa-arrow-${isProfit ? 'up' : 'down'}`;
+  document.getElementById("profit-icon").style.color = isProfit ? '#86efac' : '#fca5a5';
+  document.getElementById("profit-text").textContent = isProfit
+    ? `+GH₵${diff.toFixed(2)} (${pct}%) vs previous period`
+    : `-GH₵${Math.abs(diff).toFixed(2)} (${Math.abs(pct)}%) vs previous period`;
+}
+
+async function fetchCustomRange() {
+  const from = document.getElementById("custom-from").value;
+  const to = document.getElementById("custom-to").value;
+  if (!from || !to) { alert("Please select both dates"); return; }
+
+  const [ordersRes, waybillsRes] = await Promise.all([
+    fetch(`${API}/admin/analytics/custom?from=${from}&to=${to}`),
+    fetch(`${API}/admin/analytics/custom-waybills?from=${from}&to=${to}`)
+  ]);
+
+  const ordersData = await ordersRes.json();
+  const waybillsData = await waybillsRes.json();
+
+  document.getElementById("custom-result").style.display = "grid";
+  document.getElementById("custom-online-total").textContent = `GH₵${ordersData.total.toFixed(2)}`;
+  document.getElementById("custom-online-count").textContent = `${ordersData.count} orders`;
+  document.getElementById("custom-waybill-total").textContent = `GH₵${waybillsData.total.toFixed(2)}`;
+  document.getElementById("custom-waybill-count").textContent = `${waybillsData.count} waybills`;
+  document.getElementById("custom-grand-total").textContent = `GH₵${(ordersData.total + waybillsData.total).toFixed(2)}`;
+}
+
+window.fetchCustomRange = fetchCustomRange;
+window.showPeriod = showPeriod;
+
+// Load analytics
+fetch(`${API}/admin/analytics`)
+  .then(res => res.json())
+  .then(data => {
+    analyticsData = data;
+    document.getElementById("analytics-loading").style.display = "none";
+    document.getElementById("analytics-content").style.display = "block";
+    showPeriod('today');
+
+    // Draw chart
+    const ctx = document.getElementById("revenueChart").getContext("2d");
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.monthlyData.map(m => m.month),
+        datasets: [
+          {
+            label: 'Online Orders',
+            data: data.monthlyData.map(m => m.orders),
+            backgroundColor: 'rgba(26, 111, 196, 0.7)',
+            borderColor: '#1a6fc4',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Waybills',
+            data: data.monthlyData.map(m => m.waybills),
+            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: ctx => `GH₵${ctx.raw.toFixed(2)}` }
+          }
+        },
+        scales: {
+          x: { stacked: false },
+          y: { beginAtZero: true, ticks: { callback: val => `GH₵${val}` } }
+        }
+      }
+    });
+  })
+  .catch(() => {
+    document.getElementById("analytics-loading").innerHTML = `<p style="color:red;">Could not load analytics.</p>`;
+  });
