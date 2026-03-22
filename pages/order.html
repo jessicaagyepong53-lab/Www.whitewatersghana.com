@@ -9,7 +9,6 @@
 </head>
 <body>
   <header>
-    <!-- Navbar -->
     <section class="navbar">
       <div class="nav-brand">
         <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
@@ -25,24 +24,23 @@
         <a href="services.html">Services</a>
         <a href="certification&quality.html">Certificates</a>
         <a href="order.html">Order Now</a>
-
-        <!-- My Account Dropdown -->
         <div class="dropdown">
-  <button class="dropdown-btn">
-    <i class="fa-regular fa-circle-user"></i> My Account
-    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-  </button>
-  <div class="dropdown-menu">
-    <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-    <a href="../index.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
-    <a href="order-history.html"><i class="fa-solid fa-clock-rotate-left"></i> Order History</a>
-    <a href="#" id="logout-btn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-  </div>
-</div>
+          <button class="dropdown-btn">
+            <i class="fa-regular fa-circle-user"></i> My Account
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+            <a href="../index.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
+            <a href="order-history.html"><i class="fa-solid fa-clock-rotate-left"></i> Order History</a>
+            <a href="#" id="logout-btn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
+            <a href="staff-login.html"><i class="fa-solid fa-user-shield"></i> Staff Login</a>
+            <a href="staff-signup.html"><i class="fa-solid fa-id-badge"></i> Staff Sign Up</a>
+          </div>
+        </div>
       </nav>
     </section>
-
-    <!-- Hero -->
     <section class="hero">
       <div class="hero-text">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -51,206 +49,199 @@
       </div>
     </section>
   </header>
-  
-  <!-- Order Form -->
-<section class="order-section">
-  <div class="order-form-container">
-    <form id="orderForm">
 
-      <!-- Personal Information -->
-      <div class="form-group-title">
-        <i class="fa-regular fa-user"></i>
-        <h2>Personal Information</h2>
-      </div>
+  <!-- id="Place-order" added so home page buttons scroll here -->
+  <section class="order-section" id="Place-order">
+    <div class="order-form-container">
+      <form id="orderForm">
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="full-name">Full Name*</label>
-          <input type="text" id="full-name" placeholder="Kofi Owusu" name="full-name" required>
-          <p class="input-error-msg" id="err-name">Please enter your full name</p>
+        <div class="form-group-title">
+          <i class="fa-regular fa-user"></i>
+          <h2>Personal Information</h2>
         </div>
-        <div class="form-group">
-          <label for="telp">Phone Number*</label>
-          <input type="text" id="telp" placeholder="0245678901" name="telp" required maxlength="10">
-          <p class="input-error-msg" id="err-phone">Please enter a valid Ghana phone number (e.g. 0245678901)</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="full-name">Full Name*</label>
+            <input type="text" id="full-name" placeholder="Kofi Owusu" name="full-name" required>
+            <p class="input-error-msg" id="err-name">Please enter your full name</p>
+          </div>
+          <div class="form-group">
+            <label for="telp">Phone Number*</label>
+            <input type="text" id="telp" placeholder="0245678901" name="telp" required maxlength="10">
+            <p class="input-error-msg" id="err-phone">Please enter a valid Ghana phone number (e.g. 0245678901)</p>
+          </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="email">Email Address*</label>
-        <input type="email" id="email" placeholder="kofiowusu@gmail.com" name="email" required>
-        <p class="input-error-msg" id="err-email">Please enter a valid email address</p>
-      </div>
-
-      <!-- Delivery Address -->
-      <div class="form-group-title">
-        <i class="fa-solid fa-location-dot"></i>
-        <h2>Delivery Address</h2>
-      </div>
-
-      <div class="form-row">
         <div class="form-group">
-          <label for="region">Region*</label>
-          <select id="region" name="region" required>
-            <option value="">-- Select Region --</option>
-            <option value="Greater Accra">Greater Accra</option>
-            <option value="Ashanti">Ashanti</option>
-            <option value="Western">Western</option>
-            <option value="Central">Central</option>
-            <option value="Eastern">Eastern</option>
-            <option value="Northern">Northern</option>
-            <option value="Upper East">Upper East</option>
-            <option value="Upper West">Upper West</option>
-            <option value="Volta">Volta</option>
-            <option value="Brong-Ahafo">Brong-Ahafo</option>
-            <option value="North East">North East</option>
-            <option value="Savannah">Savannah</option>
-            <option value="Bono East">Bono East</option>
-            <option value="Oti">Oti</option>
-            <option value="Ahafo">Ahafo</option>
-            <option value="Western North">Western North</option>
+          <label for="email">Email Address*</label>
+          <input type="email" id="email" placeholder="kofiowusu@gmail.com" name="email" required>
+          <p class="input-error-msg" id="err-email">Please enter a valid email address</p>
+        </div>
+
+        <div class="form-group-title">
+          <i class="fa-solid fa-location-dot"></i>
+          <h2>Delivery Address</h2>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="region">Region*</label>
+            <select id="region" name="region" required>
+              <option value="">-- Select Region --</option>
+              <option value="Greater Accra">Greater Accra</option>
+              <option value="Ashanti">Ashanti</option>
+              <option value="Western">Western</option>
+              <option value="Central">Central</option>
+              <option value="Eastern">Eastern</option>
+              <option value="Northern">Northern</option>
+              <option value="Upper East">Upper East</option>
+              <option value="Upper West">Upper West</option>
+              <option value="Volta">Volta</option>
+              <option value="Brong-Ahafo">Brong-Ahafo</option>
+              <option value="North East">North East</option>
+              <option value="Savannah">Savannah</option>
+              <option value="Bono East">Bono East</option>
+              <option value="Oti">Oti</option>
+              <option value="Ahafo">Ahafo</option>
+              <option value="Western North">Western North</option>
+            </select>
+            <p class="input-error-msg" id="err-region">Please select your region</p>
+          </div>
+          <div class="form-group">
+            <label for="district">District*</label>
+            <select id="district" name="district" required>
+              <option value="">-- Select District --</option>
+            </select>
+            <p class="input-error-msg" id="err-district">Please select your district</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="street-address">Street Address*</label>
+          <input type="text" id="street-address" placeholder="123 Main St" name="street-address" required>
+          <p class="input-error-msg" id="err-street">Please enter your street address</p>
+        </div>
+
+        <div class="form-group">
+          <label for="gps">GPS Address (Optional)</label>
+          <input type="text" id="gps" placeholder="GBC-453-225" name="gps">
+        </div>
+
+        <div class="form-group-title">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <h2>Order Details</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="product">Select Product*</label>
+          <select id="product" name="product" required>
+            <option value="">-- Choose a product --</option>
+            <option value="sachet-water" data-price="7">Sachet Water - 500ml (GH₵7 per bag)</option>
+            <option value="bulk-purchase" data-price="7">Sachet Water - Bulk purchase (GH₵7 per bag)</option>
           </select>
-          <p class="input-error-msg" id="err-region">Please select your region</p>
+          <p class="input-error-msg" id="err-product">Please select a product</p>
         </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="quantity">Quantity*</label>
+            <input type="number" id="quantity" placeholder="1" name="quantity" min="1" required>
+            <p class="input-error-msg" id="err-quantity">Please enter a quantity</p>
+          </div>
+          <div class="form-group">
+            <label for="order-type">Order Type</label>
+            <select id="order-type" name="order-type">
+              <option value="">-- Select order type --</option>
+              <option value="one-time" data-discount="0">One-Time Purchase</option>
+              <option value="weekly" data-discount="10">Weekly Subscription (Save 10%)</option>
+              <option value="biweekly" data-discount="15">Bi-Weekly Subscription (Save 15%)</option>
+              <option value="monthly" data-discount="20">Monthly Subscription (Save 20%)</option>
+            </select>
+            <p class="input-error-msg" id="err-ordertype">Please select an order type</p>
+          </div>
+        </div>
+
+        <div id="order-total-box" style="display:none; background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary); border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <h3 style="margin-bottom: 8px; font-size: 16px;">Order Summary</h3>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
+            <span>Subtotal:</span><span id="subtotal">GH₵0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; color: green;">
+            <span>Discount:</span><span id="discount-amount">GH₵0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
+            <span>Delivery Fee:</span><span id="delivery-fee">GH₵100.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 500; border-top: 1px solid var(--color-border-tertiary); padding-top: 8px; margin-top: 8px;">
+            <span>Total:</span><span id="order-total">GH₵0.00</span>
+          </div>
+        </div>
+
+        <div class="form-group-title">
+          <i class="fa-regular fa-calendar"></i>
+          <h2>Delivery Schedule</h2>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="delivery-date">Preferred Delivery Date*</label>
+            <input type="date" id="delivery-date" name="delivery-date" required>
+            <p class="input-error-msg" id="err-date">Please select a delivery date</p>
+          </div>
+          <div class="form-group">
+            <label for="time-slot">Preferred Time Slot*</label>
+            <select id="time-slot" name="time-slot" required>
+              <option value="">-- Select a time slot --</option>
+              <option value="morning">Morning (8am - 12pm)</option>
+              <option value="afternoon">Afternoon (12pm - 4pm)</option>
+              <option value="evening">Evening (4pm - 8pm)</option>
+            </select>
+            <p class="input-error-msg" id="err-timeslot">Please select a time slot</p>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label for="district">District*</label>
-          <select id="district" name="district" required>
-            <option value="">-- Select District --</option>
-          </select>
-          <p class="input-error-msg" id="err-district">Please select your district</p>
+          <label for="instructions">Special Instructions (Optional)</label>
+          <textarea id="instructions" name="instructions" placeholder="Any special instructions, house number, etc.?" rows="5"></textarea>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="street-address">Street Address*</label>
-        <input type="text" id="street-address" placeholder="123 Main St" name="street-address" required>
-        <p class="input-error-msg" id="err-street">Please enter your street address</p>
-      </div>
+        <p class="input-error-msg" id="err-order"></p>
 
-      <div class="form-group">
-        <label for="gps">GPS Address (Optional)</label>
-        <input type="text" id="gps" placeholder="GBC-453-225" name="gps">
-      </div>
+        <button type="submit" class="submit-btn">
+          <i class="fa-solid fa-cart-shopping"></i> Place Order
+        </button>
+        <p class="form-note">By placing an order, you agree to our terms and conditions. We'll contact you to confirm your order and arrange payment.</p>
 
-      <!-- Order Details -->
-      <div class="form-group-title">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <h2>Order Details</h2>
-      </div>
-
-      <div class="form-group">
-        <label for="product">Select Product*</label>
-        <select id="product" name="product" required>
-          <option value="">-- Choose a product --</option>
-          <option value="sachet-water" data-price="7">Sachet Water - 500ml (GH₵7 per bag)</option>
-          <option value="bulk-purchase" data-price="7">Sachet Water - Bulk purchase (GH₵7 per bag)</option>
-        </select>
-        <p class="input-error-msg" id="err-product">Please select a product</p>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="quantity">Quantity*</label>
-          <input type="number" id="quantity" placeholder="1" name="quantity" min="1" required>
-          <p class="input-error-msg" id="err-quantity">Please enter a quantity</p>
-        </div>
-        <div class="form-group">
-          <label for="order-type">Order Type*</label>
-          <select id="order-type" name="order-type" required>
-            <option value="">-- Select order type --</option>
-            <option value="one-time" data-discount="0">One-Time Purchase</option>
-            <option value="weekly" data-discount="10">Weekly Subscription (Save 10%)</option>
-            <option value="biweekly" data-discount="15">Bi-Weekly Subscription (Save 15%)</option>
-            <option value="monthly" data-discount="20">Monthly Subscription (Save 20%)</option>
-          </select>
-          <p class="input-error-msg" id="err-ordertype">Please select an order type</p>
-        </div>
-      </div>
-
-      <!-- Order Total -->
-      <div id="order-total-box" style="display:none; background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary); border-radius: 8px; padding: 16px; margin: 16px 0;">
-        <h3 style="margin-bottom: 8px; font-size: 16px;">Order Summary</h3>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
-          <span>Subtotal:</span>
-          <span id="subtotal">GH₵0.00</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; color: green;">
-          <span>Discount:</span>
-          <span id="discount-amount">GH₵0.00</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 500; border-top: 1px solid var(--color-border-tertiary); padding-top: 8px; margin-top: 8px;">
-          <span>Total:</span>
-          <span id="order-total">GH₵0.00</span>
-        </div>
-      </div>
-
-      <!-- Delivery Schedule -->
-      <div class="form-group-title">
-        <i class="fa-regular fa-calendar"></i>
-        <h2>Delivery Schedule</h2>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="delivery-date">Preferred Delivery Date*</label>
-          <input type="date" id="delivery-date" name="delivery-date" required>
-          <p class="input-error-msg" id="err-date">Please select a delivery date</p>
-        </div>
-        <div class="form-group">
-          <label for="time-slot">Preferred Time Slot*</label>
-          <select id="time-slot" name="time-slot" required>
-            <option value="">-- Select a time slot --</option>
-            <option value="morning">Morning (8am - 12pm)</option>
-            <option value="afternoon">Afternoon (12pm - 4pm)</option>
-            <option value="evening">Evening (4pm - 8pm)</option>
-          </select>
-          <p class="input-error-msg" id="err-timeslot">Please select a time slot</p>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="instructions">Special Instructions (Optional)</label>
-        <textarea id="instructions" name="instructions" placeholder="Any special instructions, house number, etc.?" rows="5"></textarea>
-      </div>
-
-      <p class="input-error-msg" id="err-order"></p>
-
-      <button type="submit" class="submit-btn">
-        <i class="fa-solid fa-cart-shopping"></i> Place Order
-      </button>
-      <p class="form-note">By placing an order, you agree to our terms and conditions. We'll contact you to confirm your order and arrange payment.</p>
-
-      <!-- Contact Sidebar -->
-      <section id="request-a-quote">
-        <div class="order-contact">
-          <h3>Need Help with Your Order?</h3>
-          <div class="contact-row">
-            <div class="contact-item">
-              <i class="fa-solid fa-phone"></i>
-              <div>
-                <strong>Call Us</strong>
-                <p>+233 243 108 878</p>
-                <p>+233 244 483 793</p>
-                <p>Mon – Sat, 8AM – 8PM</p>
+        <section id="request-a-quote">
+          <div class="order-contact">
+            <h3>Need Help with Your Order?</h3>
+            <div class="contact-row">
+              <div class="contact-item">
+                <i class="fa-solid fa-phone"></i>
+                <div>
+                  <strong>Call Us</strong>
+                  <p>+233 243 108 878</p>
+                  <p>+233 244 483 793</p>
+                  <p>Mon – Sat, 8AM – 8PM</p>
+                </div>
               </div>
-            </div>
-            <div class="contact-item">
-              <i class="fa-solid fa-envelope"></i>
-              <div>
-                <strong>Email Us</strong>
-                <p>whitewaterwellscompanyltd@gmail.com</p>
-                <p>We'll respond within 24 hours</p>
+              <div class="contact-item">
+                <i class="fa-solid fa-envelope"></i>
+                <div>
+                  <strong>Email Us</strong>
+                  <p>whitewaterwellscompanyltd@gmail.com</p>
+                  <p>We'll respond within 24 hours</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-    </form>
-  </div>
-</section>
+      </form>
+    </div>
+  </section>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-inner">
       <div class="footer-brand">
@@ -258,7 +249,6 @@
         <h2>WHITE WATER WELLS LTD</h2>
         <p>Pure. Reliable. Refreshing.</p>
       </div>
-
       <div class="footer-links">
         <h3>Quick Links</h3>
         <a href="../home.html">Home</a>
@@ -266,16 +256,14 @@
         <a href="products.html">Products</a>
         <a href="services.html">Services</a>
         <a href="certification&quality.html">Certificates</a>
-        <a href="order.html">Order Now</a>      
+        <a href="order.html">Order Now</a>
       </div>
-
       <div class="footer-services">
         <h3>Services</h3>
         <p>Delivery</p>
         <p>Wholesale</p>
         <p>Retail</p>
       </div>
-
       <div class="footer-contact">
         <h3>Contact Info</h3>
         <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
@@ -284,7 +272,6 @@
         <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
       </div>
     </div>
-
     <div class="footer-bottom">
       <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
     </div>

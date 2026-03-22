@@ -35,6 +35,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+const STAFF_LOGIN_PROFILES = {
+  "gardiner9wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 9" },
+  "gardiner8wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 8" },
+  "supervisorb@whitewaterghana.com": { role: "supervisor", username: "Supervisor B" }
+};
+
 // ============================================
 // GENERATE INVOICE PDF
 // ============================================
@@ -183,7 +189,87 @@ async function sendInvoiceEmail(order, invoiceNumber, pdfPath) {
     html: mailOptions.html.replace("Thank you for your order", "New order received from")
   });
 
-  fs.unlinkSync(pdfPath);
+  if (fs.existsSync(pdfPath)) {
+    fs.unlinkSync(pdfPath);
+  }
+}
+
+function getInvoiceNumberFromOrder(order) {
+  if (!order?._id) return 1;
+  const hexTail = String(order._id).slice(-6);
+  const numeric = parseInt(hexTail, 16);
+  return Number.isFinite(numeric) ? (numeric % 1000000) : 1;
+}
+
+async function sendPaidOrderConfirmationEmail(order) {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: order.email,
+    subject: "Order Confirmed & Paid - White Water Wells LTD",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #16a34a; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Order Confirmed & Paid</h1>
+        </div>
+        <div style="padding: 30px; background: #f8faff;">
+          <p>Dear ${order.name},</p>
+          <p>Your order has been confirmed and payment has been received.</p>
+          <p><strong>Product:</strong> ${order.product}</p>
+          <p><strong>Quantity:</strong> ${order.quantity} bag(s)</p>
+          <p><strong>Total:</strong> ${order.total || "N/A"}</p>
+          <p><strong>Delivery Date:</strong> ${new Date(order.delivery).toDateString()}</p>
+          <p style="color: #16a34a; font-weight: 700;">Status: PAID</p>
+        </div>
+      </div>
+    `
+  });
+}
+
+async function sendCompanyWaybillNoticeForPaidOrder(order) {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: process.env.COMPANY_EMAIL,
+    subject: `Waybill Preparation Needed - Paid Order ${order.name}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <div style="background: #0a3d7a; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">Paid Order Ready for Waybill</h1>
+          <p style="color: rgba(255,255,255,0.8); margin: 5px 0;">White Water Wells LTD</p>
+        </div>
+        <div style="padding: 24px; background: #f8faff;">
+          <p>A customer order has been confirmed and paid. Please prepare delivery waybill.</p>
+          <table style="width:100%; border-collapse: collapse; font-size: 14px;">
+            <tr><td style="padding:8px; font-weight:700; width:40%;">Customer:</td><td style="padding:8px;">${order.name}</td></tr>
+            <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Phone:</td><td style="padding:8px;">${order.phone}</td></tr>
+            <tr><td style="padding:8px; font-weight:700;">Address:</td><td style="padding:8px;">${order.streetAddress || ""}, ${order.district || ""}, ${order.region || ""}</td></tr>
+            <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Product:</td><td style="padding:8px;">${order.product}</td></tr>
+            <tr><td style="padding:8px; font-weight:700;">Quantity:</td><td style="padding:8px;">${order.quantity} bag(s)</td></tr>
+            <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Delivery Date:</td><td style="padding:8px;">${new Date(order.delivery).toDateString()}</td></tr>
+            <tr><td style="padding:8px; font-weight:700;">Total:</td><td style="padding:8px;">${order.total || "N/A"}</td></tr>
+          </table>
+        </div>
+      </div>
+    `
+  });
+}
+
+async function triggerPaidOrderEmails(order) {
+  if (!order || order.paymentStatus !== "paid") return;
+  if (order.notificationSent) return;
+
+  const invoiceNumber = getInvoiceNumberFromOrder(order);
+  const pdfPath = await generateInvoice(order, invoiceNumber);
+
+  await Promise.all([
+    sendPaidOrderConfirmationEmail(order),
+    sendInvoiceEmail(order, invoiceNumber, pdfPath),
+    sendCompanyWaybillNoticeForPaidOrder(order)
+  ]);
+
+  await Order.findByIdAndUpdate(order._id, {
+    notificationSent: true,
+    notificationSentAt: new Date()
+  });
 }
 
 // ============================================
@@ -215,7 +301,9 @@ const OrderSchema = new mongoose.Schema({
   total:         String,
   paymentMethod: String,
   transactionId: String,
-  paymentStatus: { type: String, default: "pending" }
+  paymentStatus: { type: String, default: "pending" },
+  notificationSent: { type: Boolean, default: false },
+  notificationSentAt: Date
 }, { timestamps: true });
 const Order = mongoose.model("Order", OrderSchema);
 
@@ -233,8 +321,11 @@ const WaybillSchema = new mongoose.Schema({
   receivedBy:      String,
   driverSignature: String,
   submittedBy:     String,
-  amount:          Number
+  amount:          Number,
+  emailSent:       { type: Boolean, default: false },
+  emailSentAt:     Date
 }, { timestamps: true });
+const Waybill = mongoose.model("Waybill", WaybillSchema);
 
 // ============================================
 // AUTH ROUTES
@@ -291,10 +382,12 @@ app.post("/staff-login", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: "Missing email or password" });
 
-    const allowedDomains = ["@whitewatersghana.com", "@supervisor.whitewatersghana.com"];
-    const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
-    if (!isAllowed)
-      return res.status(403).json({ message: "Access denied. Staff emails only." });
+    const loginId = String(email || "").trim().toLowerCase();
+    const profile = STAFF_LOGIN_PROFILES[loginId];
+
+    if (!profile) {
+      return res.status(403).json({ message: "Access denied. This staff login ID is not approved." });
+    }
 
     const user = await User.findOne({ email });
     if (!user)
@@ -304,9 +397,11 @@ app.post("/staff-login", async (req, res) => {
     if (!match)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    const role = email.includes("supervisor") ? "supervisor" : "admin";
+    const role = profile.role;
+    const displayUsername = profile.username;
+
     const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ message: "Login successful!", token, user: { fullName: user.fullName, role } });
+    res.json({ message: "Login successful!", token, user: { fullName: displayUsername, role } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -361,15 +456,38 @@ app.post("/order", async (req, res) => {
   try {
     const order = new Order(req.body);
     await order.save();
-
-    const orderCount = await Order.countDocuments();
-    const pdfPath = await generateInvoice(req.body, orderCount);
-    await sendInvoiceEmail(req.body, orderCount, pdfPath);
-
     res.status(201).json({ message: "Order placed!", order });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to save order" });
+  }
+});
+
+app.patch("/order/:id/payment", async (req, res) => {
+  try {
+    const { paymentMethod } = req.body;
+    const isCash = paymentMethod === "Cash on Delivery";
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        paymentMethod: paymentMethod || "To be confirmed",
+        paymentStatus: isCash ? "pending" : "paid"
+      },
+      { new: true }
+    );
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    if (!isCash) {
+      triggerPaidOrderEmails(order).catch(err => console.error("Paid-order email error:", err));
+    }
+
+    res.json({ message: "Payment updated", order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -413,31 +531,7 @@ app.patch("/admin/orders/:id/paid", async (req, res) => {
     );
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: order.email,
-      subject: "Payment Confirmed - White Water Wells LTD",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #16a34a; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Payment Confirmed!</h1>
-          </div>
-          <div style="padding: 30px; background: #f8faff;">
-            <p>Dear ${order.name},</p>
-            <p>Your payment has been confirmed by our team.</p>
-            <p><strong>Product:</strong> ${order.product}</p>
-            <p><strong>Quantity:</strong> ${order.quantity} bag(s)</p>
-            <p><strong>Total:</strong> ${order.total}</p>
-            <p><strong>Delivery Date:</strong> ${new Date(order.delivery).toDateString()}</p>
-            <p style="color: #16a34a; font-weight: 700;">Status: PAID</p>
-            <p style="color: #6b7280; font-size: 13px;">Thank you for choosing White Water Wells LTD!</p>
-          </div>
-          <div style="background: #0f1c2e; padding: 20px; text-align: center; color: rgba(255,255,255,0.6); font-size: 12px;">
-            <p>White Water Wells LTD | 0243108878 / 0244483793</p>
-          </div>
-        </div>
-      `
-    });
+    triggerPaidOrderEmails(order).catch(err => console.error("Paid-order email error:", err));
 
     res.json({ message: "Order marked as paid!", order });
   } catch (err) {
@@ -454,6 +548,8 @@ app.post("/waybill", async (req, res) => {
   try {
     const waybillCount = await Waybill.countDocuments() + 1;
     req.body.waybillNumber = `WWW2026${String(waybillCount).padStart(4, "0")}`;
+    req.body.emailSent = false;
+    req.body.emailSentAt = null;
 
     const waybill = new Waybill(req.body);
     await waybill.save();
@@ -492,6 +588,10 @@ app.post("/waybill", async (req, res) => {
       `
     });
 
+    waybill.emailSent = true;
+    waybill.emailSentAt = new Date();
+    await waybill.save();
+
     res.json({ message: "Waybill submitted successfully!", waybill });
   } catch (err) {
     console.error(err);
@@ -514,6 +614,169 @@ app.get("/waybills/count", async (req, res) => {
     const count = await Waybill.countDocuments();
     res.json({ count });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+function parseMoney(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value !== "string") return 0;
+  const numeric = parseFloat(value.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function endOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
+function startOfWeek(d) {
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return startOfDay(monday);
+}
+
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function endOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function startOfYear(d) {
+  return new Date(d.getFullYear(), 0, 1);
+}
+
+function endOfYear(d) {
+  return new Date(d.getFullYear(), 11, 31, 23, 59, 59, 999);
+}
+
+async function computePeriodStats(from, to) {
+  const [paidOrders, pendingOrders, sentWaybills] = await Promise.all([
+    Order.find({ createdAt: { $gte: from, $lte: to }, paymentStatus: "paid" }),
+    Order.find({ createdAt: { $gte: from, $lte: to }, paymentStatus: { $ne: "paid" } }),
+    Waybill.find({ createdAt: { $gte: from, $lte: to }, emailSent: true })
+  ]);
+
+  const onlinePaidTotal = paidOrders.reduce((sum, o) => sum + parseMoney(o.total), 0);
+  const onlinePendingTotal = pendingOrders.reduce((sum, o) => sum + parseMoney(o.total), 0);
+  const waybillTotal = sentWaybills.reduce((sum, w) => sum + parseMoney(w.amount), 0);
+
+  return {
+    online: {
+      paid: onlinePaidTotal,
+      paidCount: paidOrders.length,
+      pending: onlinePendingTotal,
+      pendingCount: pendingOrders.length
+    },
+    waybills: {
+      total: waybillTotal,
+      count: sentWaybills.length
+    },
+    grandTotal: onlinePaidTotal + waybillTotal
+  };
+}
+
+function growthMeta(current, previous) {
+  const diff = current - previous;
+  const pct = previous > 0 ? (diff / previous) * 100 : (current > 0 ? 100 : 0);
+  return {
+    change: diff,
+    changePct: Number(pct.toFixed(1)),
+    trend: diff >= 0 ? "profit" : "loss"
+  };
+}
+
+async function buildAnalyticsPayload() {
+  const now = new Date();
+
+  const todayFrom = startOfDay(now);
+  const todayTo = endOfDay(now);
+
+  const weekFrom = startOfWeek(now);
+  const weekTo = endOfDay(now);
+
+  const monthFrom = startOfMonth(now);
+  const monthTo = endOfDay(now);
+
+  const yearFrom = startOfYear(now);
+  const yearTo = endOfDay(now);
+
+  const lastWeekTo = new Date(weekFrom.getTime() - 1);
+  const lastWeekFrom = startOfWeek(lastWeekTo);
+
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthFrom = startOfMonth(prevMonthDate);
+  const lastMonthTo = endOfMonth(prevMonthDate);
+
+  const prevYearDate = new Date(now.getFullYear() - 1, 0, 1);
+  const lastYearFrom = startOfYear(prevYearDate);
+  const lastYearTo = endOfYear(prevYearDate);
+
+  const [today, week, month, year, lastWeek, lastMonth, lastYear] = await Promise.all([
+    computePeriodStats(todayFrom, todayTo),
+    computePeriodStats(weekFrom, weekTo),
+    computePeriodStats(monthFrom, monthTo),
+    computePeriodStats(yearFrom, yearTo),
+    computePeriodStats(lastWeekFrom, lastWeekTo),
+    computePeriodStats(lastMonthFrom, lastMonthTo),
+    computePeriodStats(lastYearFrom, lastYearTo)
+  ]);
+
+  const monthlyData = [];
+  for (let i = 11; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const from = startOfMonth(d);
+    const to = endOfMonth(d);
+    const stats = await computePeriodStats(from, to);
+    monthlyData.push({
+      month: d.toLocaleString("default", { month: "short" }),
+      orders: Number(stats.online.paid.toFixed(2)),
+      waybills: Number(stats.waybills.total.toFixed(2)),
+      total: Number(stats.grandTotal.toFixed(2))
+    });
+  }
+
+  return {
+    today,
+    week,
+    month,
+    year,
+    lastWeek,
+    lastMonth,
+    lastYear,
+    monthlyData,
+    trends: {
+      today: growthMeta(today.grandTotal, lastWeek.grandTotal),
+      week: growthMeta(week.grandTotal, lastWeek.grandTotal),
+      month: growthMeta(month.grandTotal, lastMonth.grandTotal),
+      year: growthMeta(year.grandTotal, lastYear.grandTotal)
+    }
+  };
+}
+
+app.get("/admin/analytics", async (req, res) => {
+  try {
+    const payload = await buildAnalyticsPayload();
+    res.json(payload);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/admin/profits", async (req, res) => {
+  try {
+    const payload = await buildAnalyticsPayload();
+    res.json(payload);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });

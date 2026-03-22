@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Orders</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <div class="dropdown">
+          <button class="dropdown-btn" style="font-size:14px;">
+            <i class="fa-solid fa-user-shield"></i> <span id="staff-welcome">Admin</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="admin-dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="admin-orders.html"><i class="fa-solid fa-cart-shopping"></i> Customer Orders</a>
+            <a href="admin-invoices.html"><i class="fa-solid fa-file-invoice"></i> Invoices</a>
+            <a href="admin-profits.html"><i class="fa-solid fa-chart-line"></i> Profits</a>
+            <a href="waybill.html"><i class="fa-solid fa-truck"></i> Waybill</a>
+            <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
+            <a href="#" id="staff-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+          </div>
+        </div>
+      </nav>
+    </section>
+
+    <section class="hero" style="min-height:300px;">
+      <div class="hero-text">
+        <i class="fa-solid fa-cart-shopping" style="color:white; font-size:4rem; margin-bottom:20px; display:block;"></i>
+        <h1>Customer Orders</h1>
+        <p>View and manage all customer orders</p>
+      </div>
+    </section>
+  </header>
+
+  <section style="padding:60px 80px; max-width:1200px; margin:0 auto;">
+
+    <div style="background:var(--blue-light); border-radius:var(--radius-lg); padding:18px 20px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+      <div>
+        <p style="font-size:15px; font-weight:700; color:var(--blue-deep); margin-bottom:6px;">Quick Order Views</p>
+        <p style="font-size:13px; color:var(--text-mid);">Open direct links for unpaid customer orders, online paid orders, or pay-on-delivery orders.</p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="admin-orders.html?view=pending" style="font-size:13px; font-weight:600; color:var(--blue-deep); background:var(--white); border:1px solid var(--border); border-radius:999px; padding:10px 14px; text-decoration:none;">
+          <i class="fa-solid fa-clock"></i> Pending Orders
+        </a>
+        <a href="admin-orders.html?view=paid" style="font-size:13px; font-weight:600; color:#166534; background:var(--white); border:1px solid var(--border); border-radius:999px; padding:10px 14px; text-decoration:none;">
+          <i class="fa-solid fa-circle-check"></i> Paid on Site
+        </a>
+        <a href="admin-orders.html?view=cash" style="font-size:13px; font-weight:600; color:#b45309; background:var(--white); border:1px solid var(--border); border-radius:999px; padding:10px 14px; text-decoration:none;">
+          <i class="fa-solid fa-money-bill-wave"></i> Pay on Delivery
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+      <a href="admin-orders.html?view=all" onclick="filterAdminOrders('all'); return false;" id="ao-filter-all" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">All Orders</a>
+      <a href="admin-orders.html?view=pending" onclick="filterAdminOrders('pending'); return false;" id="ao-filter-pending" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Pending</a>
+      <a href="admin-orders.html?view=paid" onclick="filterAdminOrders('paid'); return false;" id="ao-filter-paid" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Paid on Site</a>
+      <a href="admin-orders.html?view=cash" onclick="filterAdminOrders('cash'); return false;" id="ao-filter-cash" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Pay on Delivery</a>
+    </div>
+
+    <div id="ao-loading" style="text-align:center; padding:40px; color:var(--text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+      <p style="margin-top:12px;">Loading orders...</p>
+    </div>
+
+    <div id="admin-orders-list"></div>
+
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../home.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="products.html">Products</a>
+        <a href="services.html">Services</a>
+        <a href="certification&quality.html">Certificates</a>
+        <a href="order.html">Order Now</a>
+      </div>
+      <div class="footer-services">
+        <h3>Services</h3>
+        <p>Delivery</p>
+        <p>Wholesale</p>
+        <p>Retail</p>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
+        <p><i class="fa-solid fa-map-location-dot"></i> GPS: GN-0709-4736</p>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>

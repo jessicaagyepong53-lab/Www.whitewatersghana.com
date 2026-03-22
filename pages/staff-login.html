@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Login</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <a href="../home.html">Home</a>
+        <a href="login.html">Customer Login</a>
+      </nav>
+    </section>
+  </header>
+
+  <section class="auth-section">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-icon">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h1>Staff Access</h1>
+        <p>Sign in with your approved White Water Wells staff login ID</p>
+      </div>
+
+      <form id="staffLoginForm">
+        <div class="form-group">
+          <label for="email">
+            <i class="fa-regular fa-envelope"></i> Staff Email
+          </label>
+          <input type="email" id="email" placeholder="approved-login-id" name="email" required>
+          <p class="input-error-msg" id="err-email">Please enter your staff login ID</p>
+        </div>
+
+        <div class="form-group">
+          <label for="password">
+            <i class="fa-solid fa-lock"></i> Password
+          </label>
+          <div style="position: relative;">
+            <input type="password" id="password" placeholder="••••••••••" name="password" required>
+            <i class="fa-regular fa-eye toggle-password" data-target="password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color: gray;"></i>
+          </div>
+          <p class="input-error-msg" id="err-password">Please enter your password</p>
+        </div>
+
+        <p class="input-error-msg" id="err-staff-login"></p>
+        <button type="submit" class="submit-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> Staff Sign In
+        </button>
+
+        <p class="auth-switch" style="margin-top:12px;">
+          <a href="staff-forgot-password.html">Forgot Password?</a>
+        </p>
+
+        <p class="auth-switch">
+          Need the customer portal? <a href="login.html">Go to customer login</a>
+        </p>
+      </form>
+
+      <p class="form-note">Only approved staff login IDs can access this page.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../home.html">Home</a>
+        <a href="login.html">Customer Login</a>
+        <a href="../index.html">Sign Up</a>
+      </div>
+
+      <div class="footer-services">
+        <h3>Staff Access</h3>
+        <p>Order Management</p>
+        <p>Waybill Submission</p>
+        <p>Payment Confirmation</p>
+      </div>
+
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
+        <p><i class="fa-solid fa-map-location-dot"></i> GPS: GN-0709-4736</p>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>

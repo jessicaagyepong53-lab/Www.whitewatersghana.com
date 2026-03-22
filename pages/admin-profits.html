@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profit Dashboard</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <div class="dropdown">
+          <button class="dropdown-btn" style="font-size:14px;">
+            <i class="fa-solid fa-user-shield"></i> <span id="staff-welcome">Admin</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="admin-dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="admin-orders.html"><i class="fa-solid fa-cart-shopping"></i> Customer Orders</a>
+            <a href="admin-invoices.html"><i class="fa-solid fa-file-invoice"></i> Invoices</a>
+            <a href="admin-profits.html"><i class="fa-solid fa-chart-line"></i> Profits</a>
+            <a href="waybill.html"><i class="fa-solid fa-truck"></i> Waybill</a>
+            <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
+            <a href="#" id="staff-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+          </div>
+        </div>
+      </nav>
+    </section>
+
+    <section class="hero" style="min-height:300px;">
+      <div class="hero-text">
+        <i class="fa-solid fa-chart-line" style="color:white; font-size:4rem; margin-bottom:20px; display:block;"></i>
+        <h1>Profit Dashboard</h1>
+        <p>Track daily, weekly, monthly and yearly performance</p>
+      </div>
+    </section>
+  </header>
+
+  <section style="padding:60px 80px; max-width:1200px; margin:0 auto;">
+    <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+      <button onclick="showProfitPeriod('today')" id="profit-tab-today" class="filter-btn active-filter">Daily</button>
+      <button onclick="showProfitPeriod('week')" id="profit-tab-week" class="filter-btn">Weekly</button>
+      <button onclick="showProfitPeriod('month')" id="profit-tab-month" class="filter-btn">Monthly</button>
+      <button onclick="showProfitPeriod('year')" id="profit-tab-year" class="filter-btn">Yearly</button>
+    </div>
+
+    <div id="profits-loading" style="text-align:center; padding:40px; color:var(--text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+      <p style="margin-top:12px;">Loading profit analytics...</p>
+    </div>
+
+    <div id="profits-content" style="display:none;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:20px; margin-bottom:24px;">
+        <div style="background:var(--white); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); border-left:4px solid var(--blue-mid);">
+          <p style="font-size:13px; color:var(--text-muted);">Total Profit</p>
+          <p id="profit-total" style="font-size:28px; font-weight:700; color:var(--blue-deep);">GH₵0.00</p>
+        </div>
+        <div style="background:var(--white); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); border-left:4px solid #16a34a;">
+          <p style="font-size:13px; color:var(--text-muted);">Paid Orders Revenue</p>
+          <p id="profit-orders" style="font-size:24px; font-weight:700; color:#16a34a;">GH₵0.00</p>
+          <p id="profit-orders-count" style="font-size:12px; color:var(--text-muted);">0 paid orders</p>
+        </div>
+        <div style="background:var(--white); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); border-left:4px solid #d97706;">
+          <p style="font-size:13px; color:var(--text-muted);">Waybill Revenue</p>
+          <p id="profit-waybills" style="font-size:24px; font-weight:700; color:#d97706;">GH₵0.00</p>
+          <p id="profit-waybills-count" style="font-size:12px; color:var(--text-muted);">0 sent waybills</p>
+        </div>
+        <div style="background:linear-gradient(135deg, var(--blue-deep) 0%, var(--blue-mid) 100%); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-md);">
+          <p style="font-size:13px; color:rgba(255,255,255,0.8);">Trend</p>
+          <p id="profit-trend" style="font-size:24px; font-weight:700; color:white;">Profit</p>
+          <p id="profit-trend-text" style="font-size:12px; color:rgba(255,255,255,0.85);">Calculating...</p>
+        </div>
+      </div>
+
+      <p id="profit-period-label" style="font-size:13px; color:var(--text-muted); margin-bottom:20px; font-weight:600;">Showing: Daily</p>
+
+      <div style="background:var(--white); border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow-sm);">
+        <h3 style="font-family:'Playfair Display',serif; font-size:18px; margin-bottom:12px;">Profit Trend (Last 12 Months)</h3>
+        <canvas id="profitChart" height="100"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../home.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="products.html">Products</a>
+        <a href="services.html">Services</a>
+        <a href="certification&quality.html">Certificates</a>
+        <a href="order.html">Order Now</a>
+      </div>
+      <div class="footer-services">
+        <h3>Services</h3>
+        <p>Delivery</p>
+        <p>Wholesale</p>
+        <p>Retail</p>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
+        <p><i class="fa-solid fa-map-location-dot"></i> GPS: GN-0709-4736</p>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>

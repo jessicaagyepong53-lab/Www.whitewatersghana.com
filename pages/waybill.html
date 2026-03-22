@@ -19,10 +19,21 @@
         </div>
       </div>
       <nav class="navlink">
-        <span id="staff-welcome" style="font-size:14px; font-weight:600; color: var(--blue-mid);"></span>
-        <a href="#" id="staff-logout-btn" style="font-size:14px; font-weight:500; color: var(--text-mid); padding: 8px 14px; border-radius: 6px; background: var(--blue-light);">
-          <i class="fa-solid fa-right-from-bracket"></i> Logout
-        </a>
+        <div class="dropdown">
+          <button class="dropdown-btn" style="font-size:14px;">
+            <i class="fa-solid fa-user-shield"></i> <span id="staff-welcome">Admin</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="admin-dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="admin-orders.html"><i class="fa-solid fa-cart-shopping"></i> Customer Orders</a>
+            <a href="admin-invoices.html"><i class="fa-solid fa-file-invoice"></i> Invoices</a>
+            <a href="admin-profits.html"><i class="fa-solid fa-chart-line"></i> Profits</a>
+            <a href="waybill.html"><i class="fa-solid fa-truck"></i> Waybill</a>
+            <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
+            <a href="#" id="staff-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+          </div>
+        </div>
       </nav>
     </section>
 
@@ -36,6 +47,12 @@
   </header>
 
   <section style="padding: 60px 80px; max-width: 900px; margin: 0 auto;">
+
+    <!-- Staff Name Banner -->
+    <div id="waybill-staff-banner" style="background:var(--blue-light); border-radius:var(--radius-lg); padding:14px 20px; margin-bottom:28px; font-size:14px; color:var(--blue-deep); font-weight:600; display:flex; align-items:center; gap:10px;">
+      <i class="fa-solid fa-user-shield"></i>
+      <span>Submitted by: <span id="waybill-staff-name"></span></span>
+    </div>
 
     <!-- Waybill Header -->
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid var(--blue-light);">
@@ -150,6 +167,31 @@
       <p class="form-note">Submitting this waybill will send a copy to the company email automatically.</p>
 
     </form>
+
+    <div style="margin-top:48px; border-top:2px solid var(--blue-light); padding-top:28px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:26px; color:var(--blue-deep); margin:0;">Previous Waybills</h2>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">Recent waybills submitted by staff</p>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:var(--off-white); border-radius:var(--radius); padding:14px; margin-bottom:14px;">
+        <div>
+          <label for="previous-waybills-date" style="display:block; font-size:13px; font-weight:600; color:var(--text-mid); margin-bottom:4px;">Filter by date</label>
+          <input type="date" id="previous-waybills-date" style="padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px;">
+        </div>
+        <button id="previous-waybills-clear" type="button" style="border:none; background:var(--white); color:var(--blue-deep); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+          <i class="fa-solid fa-rotate-left"></i> Clear
+        </button>
+        <p id="previous-waybills-summary" style="font-size:13px; color:var(--text-muted); margin:0 0 0 auto;"></p>
+      </div>
+
+      <div id="previous-waybills-loading" style="text-align:center; padding:24px; color:var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:20px;"></i>
+        <p style="margin-top:10px;">Loading previous waybills...</p>
+      </div>
+
+      <div id="previous-waybills-list" style="display:grid; gap:14px;"></div>
+    </div>
   </section>
 
   <footer>
@@ -159,8 +201,25 @@
         <h2>WHITE WATER WELLS LTD</h2>
         <p>Pure. Reliable. Refreshing.</p>
       </div>
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../home.html">Home</a>
+        <a href="about.html">About Us</a>
+        <a href="products.html">Products</a>
+        <a href="services.html">Services</a>
+        <a href="certification&quality.html">Certificates</a>
+        <a href="order.html">Order Now</a>
+      </div>
+      <div class="footer-services">
+        <h3>Services</h3>
+        <p>Delivery</p>
+        <p>Wholesale</p>
+        <p>Retail</p>
+      </div>
       <div class="footer-contact">
         <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-location-dot"></i> Comm 25 Peace B Down, Accra-Prampram Road, P.O. Box 18204, Accra</p>
+        <p><i class="fa-solid fa-map-location-dot"></i> GPS: GN-0709-4736</p>
         <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
         <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
       </div>

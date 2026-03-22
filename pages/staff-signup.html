@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Sign Up</title>
+  <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../src/style.css">
+</head>
+<body>
+  <header>
+    <section class="navbar">
+      <div class="nav-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <div>
+          <h1>WHITE WATER WELLS LTD</h1>
+          <p>Pure. Reliable. Refreshing.</p>
+        </div>
+      </div>
+      <nav class="navlink">
+        <a href="../home.html">Home</a>
+        <a href="staff-login.html">Staff Login</a>
+      </nav>
+    </section>
+  </header>
+
+  <section class="auth-section">
+    <div class="auth-card">
+
+      <div class="auth-header">
+        <div class="auth-icon">
+          <i class="fa-solid fa-id-badge"></i>
+        </div>
+        <h1>Staff Sign Up</h1>
+        <p>Create your White Water Wells staff account</p>
+      </div>
+
+      <div style="background:#fef3c7; border:1px solid #d97706; border-radius:8px; padding:12px 16px; font-size:13px; color:#92400e; margin-bottom:20px; display:flex; align-items:flex-start; gap:10px;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-top:2px; flex-shrink:0;"></i>
+        <span>Staff accounts require an approved staff login ID. Contact your administrator if your login ID is not active.</span>
+      </div>
+
+      <form id="staffSignupForm">
+
+        <div class="form-group">
+          <label for="full-name">
+            <i class="fa-regular fa-user"></i> Full Name*
+          </label>
+          <input type="text" id="full-name" placeholder="Kofi Owusu" name="full-name" required>
+          <p class="input-error-msg" id="err-fullname">Please enter your full name</p>
+        </div>
+
+        <div class="form-group">
+          <label for="email">
+            <i class="fa-regular fa-envelope"></i> Staff Email Address*
+          </label>
+          <input type="email" id="email" placeholder="approved-login-id" name="email" required>
+          <p class="input-error-msg" id="err-email">Please enter your staff email address</p>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">
+            <i class="fa-solid fa-phone"></i> Phone Number*
+          </label>
+          <input type="text" id="phone" placeholder="+233 245 678 901" name="phone" required>
+          <p class="input-error-msg" id="err-phone">Please enter your phone number</p>
+        </div>
+
+        <div class="form-group">
+          <label for="password">
+            <i class="fa-solid fa-lock"></i> Password*
+          </label>
+          <div style="position: relative;">
+            <input type="password" id="password" placeholder="••••••••••" name="password" required>
+            <i class="fa-regular fa-eye toggle-password" data-target="password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:gray;"></i>
+          </div>
+          <div class="password-rules">
+            <p id="rule-length" class="rule">✗ At least 8 characters</p>
+            <p id="rule-upper" class="rule">✗ At least one uppercase letter</p>
+            <p id="rule-number" class="rule">✗ At least one number</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm-password">
+            <i class="fa-solid fa-lock"></i> Confirm Password*
+          </label>
+          <div style="position: relative;">
+            <input type="password" id="confirm-password" placeholder="••••••••••" name="confirm-password" required>
+            <i class="fa-regular fa-eye toggle-password" data-target="confirm-password" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:gray;"></i>
+          </div>
+          <p id="password-match" style="font-size:13px; margin-top:6px;"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="security-question">
+            <i class="fa-solid fa-shield"></i> Security Question*
+          </label>
+          <select id="security-question" name="security-question" required>
+            <option value="">-- Choose a security question --</option>
+            <option value="mothers-maiden-name">What is your mother's maiden name?</option>
+            <option value="first-pet">What was the name of your first pet?</option>
+            <option value="primary-school">What primary school did you attend?</option>
+            <option value="childhood-nickname">What was your childhood nickname?</option>
+            <option value="first-car">What was the model of your first car?</option>
+          </select>
+          <p class="input-error-msg" id="err-question">Please select a security question</p>
+        </div>
+
+        <div class="form-group">
+          <label for="security-answer">
+            <i class="fa-solid fa-key"></i> Security Answer*
+          </label>
+          <input type="text" id="security-answer" placeholder="Your answer" name="security-answer" required>
+          <p class="input-error-msg" id="err-answer">Please enter your security answer</p>
+        </div>
+
+        <div class="form-check">
+          <input type="checkbox" id="terms" name="terms" required>
+          <label for="terms">I agree to the Terms of Service and Privacy Policy</label>
+        </div>
+
+        <div id="staff-signup-message" style="display:none; padding:10px; border-radius:8px; font-size:14px; margin-bottom:10px;"></div>
+
+        <button type="submit" class="submit-btn">
+          <i class="fa-solid fa-id-badge"></i> Create Staff Account
+        </button>
+
+        <p class="auth-switch">
+          Already have an account? <a href="staff-login.html">Staff Login</a>
+        </p>
+
+      </form>
+
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="../images/home-page-images/Final logo.jpg" alt="Logo">
+        <h2>WHITE WATER WELLS LTD</h2>
+        <p>Pure. Reliable. Refreshing.</p>
+      </div>
+      <div class="footer-links">
+        <h3>Quick Links</h3>
+        <a href="../home.html">Home</a>
+        <a href="staff-login.html">Staff Login</a>
+        <a href="login.html">Customer Login</a>
+        <a href="../index.html">Customer Sign Up</a>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact Info</h3>
+        <p><i class="fa-solid fa-phone"></i> +233 243 108 878 / +233 244 483 793</p>
+        <p><i class="fa-solid fa-envelope"></i> whitewaterwellscompanyltd@gmail.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="fa-regular fa-copyright"></i> 2025 White Water Wells LTD. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../src/script.js"></script>
+</body>
+</html>
