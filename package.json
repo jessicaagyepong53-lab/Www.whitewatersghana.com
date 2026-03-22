@@ -4,7 +4,7 @@
   "description": "��#\u0000 \u0000W\u0000w\u0000w\u0000.\u0000w\u0000h\u0000i\u0000t\u0000e\u0000w\u0000a\u0000t\u0000e\u0000r\u0000s\u0000g\u0000h\u0000a\u0000n\u0000a\u0000.\u0000c\u0000o\u0000m\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --testEnvironment node --forceExit"
   },
   "repository": {
     "type": "git",
@@ -27,5 +27,9 @@
     "mongoose": "^9.3.1",
     "nodemailer": "^8.0.3",
     "pdfkit": "^0.18.0"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2"
   }
 }

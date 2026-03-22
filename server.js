@@ -235,6 +235,7 @@ const WaybillSchema = new mongoose.Schema({
   submittedBy:     String,
   amount:          Number
 }, { timestamps: true });
+const Waybill = mongoose.model("Waybill", WaybillSchema);
 
 // ============================================
 // AUTH ROUTES
@@ -540,4 +541,8 @@ app.get("/admin/analytics/custom-waybills", async (req, res) => {
 // ============================================
 // START SERVER
 // ============================================
-app.listen(5000, () => console.log("Server running on port 5000"));
+if (require.main === module) {
+  app.listen(5000, () => console.log("Server running on port 5000"));
+}
+
+module.exports = { app, generateInvoice };
