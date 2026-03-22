@@ -295,7 +295,7 @@ if (signupForm) {
           await createAuthenticatedSession(email, password, fullName);
         }
         showMessage("signup-message", `Welcome to White Water Wells LTD, ${fullName}! Redirecting to the order page...`, "success");
-        setTimeout(() => { window.location.href = "pages/order.html"; }, 1200);
+        window.location.href = "pages/order.html";
       } else if (res.status === 409) {
         document.getElementById("email").classList.add("input-error");
         document.getElementById("err-email").textContent = "This email is already registered!";
