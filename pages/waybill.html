@@ -65,7 +65,7 @@
       </div>
       <div style="text-align: right;">
         <h2 style="font-family: 'Playfair Display', serif; font-size: 28px; color: var(--blue-mid);">WAYBILL</h2>
-        <p style="font-size: 13px; color: var(--text-muted);">No: <span id="waybill-number" style="font-weight: 700; color: var(--text-dark);">WWW2026-0001</span></p>
+        <p style="font-size: 13px; color: var(--text-muted);">No: <span id="waybill-number" style="font-weight: 700; color: var(--text-dark);">Loading...</span></p>
       </div>
     </div>
 
@@ -120,18 +120,51 @@
       </div>
 
       <div style="border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;">
-        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; background: var(--blue-mid); color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr; background: var(--blue-mid); color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+          <span>S/N</span>
           <span>Quantity</span>
           <span>Description</span>
           <span>Remarks</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0;">
-          <input type="text" id="quantity" placeholder="e.g. 100 bags" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
-          <input type="text" id="description" placeholder="Sachet Water 500ml" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
-          <input type="text" id="remarks" placeholder="Optional" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+        <div id="waybill-items-table">
+          <!-- Row 1 (required) -->
+          <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr;">
+            <span style="border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">1</span>
+            <input type="text" id="quantity-1" placeholder="e.g. 100 bags" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="description-1" placeholder="Sachet Water 500ml" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="remarks-1" placeholder="Optional" value="Sachet water" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          </div>
+          <!-- Row 2 -->
+          <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr;">
+            <span style="border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">2</span>
+            <input type="text" id="quantity-2" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="description-2" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="remarks-2" placeholder="" value="Sachet water" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          </div>
+          <!-- Row 3 -->
+          <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr;">
+            <span style="border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">3</span>
+            <input type="text" id="quantity-3" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="description-3" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="remarks-3" placeholder="" value="Sachet water" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          </div>
+          <!-- Row 4 -->
+          <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr;">
+            <span style="border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">4</span>
+            <input type="text" id="quantity-4" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="description-4" placeholder="" style="border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="remarks-4" placeholder="" value="Sachet water" style="border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          </div>
+          <!-- Row 5 -->
+          <div style="display: grid; grid-template-columns: 0.4fr 1fr 2fr 1fr;">
+            <span style="border-right: 1px solid var(--border); padding: 12px 16px; font-size: 14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">5</span>
+            <input type="text" id="quantity-5" placeholder="" style="border: none; border-right: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="description-5" placeholder="" style="border: none; border-right: 1px solid var(--border); padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+            <input type="text" id="remarks-5" placeholder="" value="Sachet water" style="border: none; padding: 12px 16px; font-size: 14px; outline: none; background: var(--off-white);">
+          </div>
         </div>
       </div>
-      <p class="input-error-msg" id="err-items">Please fill in quantity and description</p>
+      <p class="input-error-msg" id="err-items">Please fill in at least row 1 (quantity and description)</p>
 
       <!-- Signatures -->
       <div class="form-group-title" style="margin-top: 32px;">

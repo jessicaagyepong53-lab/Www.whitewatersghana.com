@@ -1,7 +1,7 @@
 const API = "https://white-water-wells.onrender.com";
 const APPROVED_STAFF_LOGINS = [
   "gardiner9wwwl@whitewaterghana",
-  "gardiner8wwwl@whitewaterghana",
+  "gardiner11wwwl@whitewaterghana",
   "supervisorb@whitewaterghana.com"
 ];
 
@@ -33,6 +33,31 @@ function showMessage(elementId, message, type) {
   el.style.padding = "10px";
   el.style.borderRadius = "8px";
   el.style.marginBottom = "10px";
+}
+
+function showToast(title, message, type = "success", duration = 4500) {
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+  const icons = { success: "circle-check", error: "circle-xmark", info: "bell" };
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <i class="fa-solid fa-${icons[type] || "bell"} toast-icon"></i>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      ${message ? `<div class="toast-msg">${message}</div>` : ""}
+    </div>`;
+  container.appendChild(toast);
+  const dismiss = () => {
+    toast.classList.add("toast-hide");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+  };
+  toast.addEventListener("click", dismiss);
+  setTimeout(dismiss, duration);
 }
 
 function updateAccountDropdown(username) {
@@ -117,6 +142,7 @@ function initAuthState() {
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
+      sessionStorage.setItem("customer-logged-out", "1");
       window.location.href = inPagesFolder ? "login.html" : "pages/login.html";
     });
   }
@@ -126,6 +152,69 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAuthState);
 } else {
   initAuthState();
+}
+
+// ============================================
+// HAMBURGER MENU + TOUCH DROPDOWN
+// ============================================
+function initMobileNav() {
+  const hamburger = document.getElementById("nav-hamburger");
+  const navlink = document.querySelector(".navlink");
+  const navbar = document.querySelector(".navbar");
+
+  if (hamburger && navlink && navbar) {
+    navbar.classList.add("has-hamburger");
+
+    hamburger.addEventListener("click", function(e) {
+      e.stopPropagation();
+      const isOpen = navlink.classList.toggle("nav-open");
+      const icon = hamburger.querySelector("i");
+      if (icon) icon.className = isOpen ? "fa-solid fa-xmark" : "fa-solid fa-bars";
+      document.querySelectorAll(".dropdown").forEach(function(d) { d.classList.remove("dropdown-open"); });
+    });
+
+    navlink.querySelectorAll("a").forEach(function(link) {
+      if (!link.closest(".dropdown-menu")) {
+        link.addEventListener("click", function() {
+          navlink.classList.remove("nav-open");
+          const icon = hamburger.querySelector("i");
+          if (icon) icon.className = "fa-solid fa-bars";
+        });
+      }
+    });
+  }
+
+  // Touch-friendly dropdown toggles (works on all pages including admin)
+  document.querySelectorAll(".dropdown-btn").forEach(function(btn) {
+    btn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      if (window.matchMedia("(hover: none)").matches || window.innerWidth <= 768) {
+        const dropdown = btn.closest(".dropdown");
+        if (!dropdown) return;
+        const wasOpen = dropdown.classList.contains("dropdown-open");
+        document.querySelectorAll(".dropdown").forEach(function(d) { d.classList.remove("dropdown-open"); });
+        if (!wasOpen) dropdown.classList.add("dropdown-open");
+      }
+    });
+  });
+
+  // Close hamburger nav and all dropdowns when clicking outside the navbar
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".navbar")) {
+      if (hamburger && navlink) {
+        navlink.classList.remove("nav-open");
+        const icon = hamburger.querySelector("i");
+        if (icon) icon.className = "fa-solid fa-bars";
+      }
+      document.querySelectorAll(".dropdown").forEach(function(d) { d.classList.remove("dropdown-open"); });
+    }
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initMobileNav);
+} else {
+  initMobileNav();
 }
 
 // ============================================
@@ -170,8 +259,10 @@ if (signupForm) {
     const securityAnswer = document.getElementById("security-answer").value.trim();
 
     let hasError = false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
     if (!fullName) { document.getElementById("full-name").classList.add("input-error"); document.getElementById("err-fullname").classList.add("show"); hasError = true; }
-    if (!email) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").classList.add("show"); hasError = true; }
+    if (!email || !emailRegex.test(email)) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").textContent = "Please enter a valid email address"; document.getElementById("err-email").classList.add("show"); hasError = true; }
     if (!phone) { document.getElementById("phone").classList.add("input-error"); document.getElementById("err-phone").classList.add("show"); hasError = true; }
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) { document.getElementById("password").classList.add("input-error"); hasError = true; }
     if (password !== confirmPassword) {
@@ -228,6 +319,16 @@ if (signupForm) {
 const loginForm = document.getElementById("loginForm");
 
 if (loginForm) {
+  // Show logout confirmation toast if redirected here after logout
+  if (sessionStorage.getItem("customer-logged-out")) {
+    sessionStorage.removeItem("customer-logged-out");
+    showToast(
+      "You have been successfully logged out.",
+      "Thank you for choosing White Water Wells LTD.",
+      "success",
+      6000
+    );
+  }
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -238,7 +339,8 @@ if (loginForm) {
     const password = document.getElementById("password").value;
 
     let hasError = false;
-    if (!email) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").classList.add("show"); hasError = true; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").textContent = "Please enter a valid email address"; document.getElementById("err-email").classList.add("show"); hasError = true; }
     if (!password) { document.getElementById("password").classList.add("input-error"); document.getElementById("err-password").classList.add("show"); hasError = true; }
     if (hasError) return;
 
@@ -442,7 +544,8 @@ if (orderForm) {
 
       if (res.ok) {
         localStorage.setItem("confirmedOrder", JSON.stringify(result.order || orderData));
-        window.location.href = "order-confirmation.html";
+        showToast("Order Submitted!", "We've received your order and will contact you shortly.", "success");
+        setTimeout(() => { window.location.href = "order-confirmation.html"; }, 1500);
       } else {
         document.getElementById("err-order").textContent = result.message || "Failed to place order. Please try again.";
         document.getElementById("err-order").classList.add("show");
@@ -452,7 +555,8 @@ if (orderForm) {
     } catch (err) {
       clearTimeout(timeout);
       localStorage.setItem("confirmedOrder", JSON.stringify(orderData));
-      window.location.href = "order-confirmation.html";
+      showToast("Order Submitted!", "We've received your order and will contact you shortly.", "success");
+      setTimeout(() => { window.location.href = "order-confirmation.html"; }, 1500);
     }
   });
 }
@@ -866,7 +970,8 @@ if (staffSignupForm) {
             localStorage.setItem("staff-role", loginResult.user.role);
             msgEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Account created! Redirecting...';
             setTimeout(() => {
-              window.location.href = loginResult.user.role === "admin" ? "admin-dashboard.html" : "waybill.html";
+              const r = loginResult.user.role;
+              window.location.href = r === "admin" ? "admin-dashboard.html" : r === "supervisor" ? "admin-invoices.html" : "waybill.html";
             }, 1200);
           } else {
             setTimeout(() => { window.location.href = "staff-login.html"; }, 1200);
@@ -937,7 +1042,8 @@ if (staffLoginForm) {
         localStorage.setItem("staff-token", result.token);
         localStorage.setItem("staff-name", staffDisplayName);
         localStorage.setItem("staff-role", result.user.role);
-        window.location.href = result.user.role === "admin" ? "admin-dashboard.html" : "waybill.html";
+        const _r = result.user.role;
+        window.location.href = _r === "admin" ? "admin-dashboard.html" : _r === "supervisor" ? "admin-invoices.html" : "waybill.html";
       } else if (res.status === 403) {
         document.getElementById("err-staff-login").textContent = result.message || "Access denied. This staff login ID is not approved.";
         document.getElementById("err-staff-login").classList.add("show");
@@ -1003,7 +1109,7 @@ if (waybillForm) {
     fetch(`${API}/waybills/count`)
       .then(res => res.json())
       .then(data => {
-        waybillNum = `WWW2026${String(data.count + 1).padStart(4, "0")}`;
+        waybillNum = data.nextNumber || "Unavailable";
         document.getElementById("waybill-number").textContent = waybillNum;
       })
       .catch(() => {
@@ -1134,9 +1240,14 @@ if (waybillForm) {
     const address = document.getElementById("address").value.trim();
     const carNumber = document.getElementById("car-number").value.trim();
     const date = document.getElementById("waybill-date").value;
-    const quantity = document.getElementById("quantity").value.trim();
-    const description = document.getElementById("description").value.trim();
-    const remarks = document.getElementById("remarks").value.trim();
+    const items = [1,2,3,4,5].map(i => ({
+      quantity: (document.getElementById(`quantity-${i}`)?.value || "").trim(),
+      description: (document.getElementById(`description-${i}`)?.value || "").trim(),
+      remarks: (document.getElementById(`remarks-${i}`)?.value || "").trim()
+    }));
+    const quantity = items[0].quantity;
+    const description = items[0].description;
+    const remarks = items[0].remarks;
     const despatchedBy = document.getElementById("despatched-by").value.trim();
     const receivedBy = document.getElementById("received-by").value.trim();
     const driverSignature = document.getElementById("driver-signature").value.trim();
@@ -1161,15 +1272,17 @@ if (waybillForm) {
       const res = await fetch(`${API}/waybill`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${staffToken}` },
-        body: JSON.stringify({ to, driverName, address, carNumber, date, quantity, description, remarks, despatchedBy, receivedBy, driverSignature, waybillNumber: waybillNum, submittedBy: staffName, amount })
+        body: JSON.stringify({ to, driverName, address, carNumber, date, items, quantity, description, remarks, despatchedBy, receivedBy, driverSignature, waybillNumber: waybillNum, submittedBy: staffName, amount })
       });
 
       const result = await res.json();
 
       if (res.ok) {
+        showToast("Waybill Submitted!", "Invoice sent to the company email successfully.", "success");
         document.getElementById("waybill-success").style.display = "block";
         waybillForm.reset();
         document.getElementById("waybill-date").value = new Date().toISOString().split("T")[0];
+        [1,2,3,4,5].forEach(i => { const el = document.getElementById(`remarks-${i}`); if (el) el.value = "Sachet water"; });
         refreshNextWaybillNumber();
         loadPreviousWaybills();
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1212,18 +1325,29 @@ if (confirmationContent) {
     const grandTotal = subtotal - discountAmount + deliveryFee;
     const date = order.createdAt ? new Date(order.createdAt) : new Date();
 
-    if (document.getElementById("invoice-number")) document.getElementById("invoice-number").textContent = `Invoice No: WWW${String(order._id || "XXXX").slice(-4).toUpperCase()}`;
+    if (document.getElementById("invoice-number")) document.getElementById("invoice-number").textContent = `Invoice No: ${order.invoiceNumber || "N/A"}`;
     if (document.getElementById("invoice-date")) document.getElementById("invoice-date").textContent = `Date: ${date.toDateString()}`;
     if (document.getElementById("invoice-name")) document.getElementById("invoice-name").textContent = order.name;
     if (document.getElementById("invoice-address")) document.getElementById("invoice-address").textContent = `${order.streetAddress}, ${order.district}, ${order.region}`;
     if (document.getElementById("invoice-phone")) document.getElementById("invoice-phone").textContent = `Phone: ${order.phone}`;
     if (document.getElementById("invoice-email")) document.getElementById("invoice-email").textContent = `Email: ${order.email}`;
-    if (document.getElementById("invoice-items")) document.getElementById("invoice-items").innerHTML = `
-      <span>${productNames[order.product] || order.product}</span>
-      <span>${order.quantity}</span>
-      <span>GH₵${unitPrice}.00</span>
-      <span>GH₵${subtotal}.00</span>
-    `;
+    if (document.getElementById("invoice-items")) {
+      const rowStyle = (bg) => `display:grid; grid-template-columns:0.3fr 2fr 1fr 1fr 1fr; padding:12px 16px; font-size:13px; background:${bg};`;
+      const emptyRow = (n, bg) => `<div style="${rowStyle(bg)}"><span>${n}</span><span></span><span></span><span></span><span></span></div>`;
+      document.getElementById("invoice-items").innerHTML = `
+        <div style="${rowStyle('var(--off-white)')}">
+          <span>1</span>
+          <span>${productNames[order.product] || order.product}</span>
+          <span>${order.quantity}</span>
+          <span>GH₵${unitPrice}.00</span>
+          <span>GH₵${subtotal}.00</span>
+        </div>
+        ${emptyRow(2, 'var(--white)')}
+        ${emptyRow(3, 'var(--off-white)')}
+        ${emptyRow(4, 'var(--white)')}
+        ${emptyRow(5, 'var(--off-white)')}
+      `;
+    }
     if (document.getElementById("invoice-subtotal")) document.getElementById("invoice-subtotal").textContent = `GH₵${subtotal}.00`;
     if (document.getElementById("invoice-discount")) document.getElementById("invoice-discount").textContent = `-GH₵${discountAmount}.00`;
     if (document.getElementById("invoice-total")) document.getElementById("invoice-total").textContent = `GH₵${grandTotal}.00`;
@@ -1581,6 +1705,7 @@ fetch(`${API}/admin/analytics`)
                   ${getAdminOrderStatusMeta(order).text}
                 </span>
               </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;"><i class="fa-solid fa-file-invoice" style="color:var(--blue-mid); margin-right:4px;"></i>Invoice No: <strong style="color:var(--blue-deep);">${order.invoiceNumber || "N/A"}</strong></p>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px; font-size:13px; color:var(--text-muted);">
                 <p><i class="fa-solid fa-phone" style="color:var(--blue-mid); margin-right:4px;"></i>${order.phone}</p>
                 <p><i class="fa-regular fa-envelope" style="color:var(--blue-mid); margin-right:4px;"></i>${order.email}</p>
@@ -1670,10 +1795,18 @@ fetch(`${API}/admin/analytics`)
     const _invRole = localStorage.getItem("staff-role");
     const _invName = localStorage.getItem("staff-name");
 
-    if (!_invToken || _invRole !== "admin") { alert("Admin access only!"); window.location.href = "staff-login.html"; }
+    if (!_invToken || (_invRole !== "admin" && _invRole !== "supervisor")) { alert("Staff access only!"); window.location.href = "staff-login.html"; }
 
     const _invWelcome = document.getElementById("staff-welcome");
     if (_invWelcome) _invWelcome.textContent = _invName;
+
+    // Hide admin-only nav links for supervisors
+    if (_invRole === "supervisor") {
+      ["inv-nav-dashboard", "inv-nav-orders", "inv-nav-profits", "inv-nav-waybill", "inv-nav-hr"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+    }
 
     const _invLogout = document.getElementById("staff-logout-btn");
     if (_invLogout) {
@@ -1699,7 +1832,7 @@ fetch(`${API}/admin/analytics`)
         return;
       }
       invoicesContainer.innerHTML = invoices.map(invoice => {
-        const invoiceNumber = invoice.waybillNumber || `INV-${String(invoice._id || "").slice(-6).toUpperCase()}`;
+        const invoiceNumber = invoice.waybillNumber || invoice.invoiceNumber || "WWW-UNKNOWN";
         const invoiceDate = invoice.date ? new Date(invoice.date) : new Date(invoice.createdAt || Date.now());
         const isSent = isSentSupervisorInvoice(invoice);
         return `
@@ -1771,6 +1904,15 @@ fetch(`${API}/admin/analytics`)
       .then(data => {
         allInvoices = data.waybills || [];
         renderInvoices(allInvoices);
+        const sent = allInvoices.filter(isSentSupervisorInvoice).length;
+        const pending = allInvoices.length - sent;
+        if (allInvoices.length > 0) {
+          showToast(
+            `${allInvoices.length} Invoice${allInvoices.length !== 1 ? "s" : ""} Loaded`,
+            `${sent} sent · ${pending} awaiting dispatch`,
+            pending > 0 ? "info" : "success"
+          );
+        }
       })
       .catch(() => {
         document.getElementById("inv-loading").style.display = "none";

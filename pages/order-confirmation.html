@@ -17,6 +17,7 @@
           <p>Pure. Reliable. Refreshing.</p>
         </div>
       </div>
+      <button id="nav-hamburger" class="hamburger-btn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
       <nav class="navlink">
         <a href="../home.html">Home</a>
         <a href="order.html">Order Now</a>
@@ -85,14 +86,14 @@
 
         <!-- Items Table -->
         <div style="border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:20px;">
-          <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; background:var(--blue-mid); color:white; padding:12px 16px; font-size:13px; font-weight:600;">
+          <div style="display:grid; grid-template-columns:0.3fr 2fr 1fr 1fr 1fr; background:var(--blue-mid); color:white; padding:12px 16px; font-size:13px; font-weight:600;">
+            <span>S/N</span>
             <span>Product</span>
             <span>Qty</span>
             <span>Unit Price</span>
             <span>Total</span>
           </div>
-          <div id="invoice-items" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; padding:12px 16px; font-size:13px; background:var(--off-white);">
-          </div>
+          <div id="invoice-items"></div>
         </div>
 
         <!-- Totals -->

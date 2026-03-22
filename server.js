@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
 
 const STAFF_LOGIN_PROFILES = {
   "gardiner9wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 9" },
-  "gardiner8wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 8" },
+  "gardiner11wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 11" },
   "supervisorb@whitewaterghana.com": { role: "supervisor", username: "Supervisor B" }
 };
 
@@ -63,7 +63,7 @@ function generateInvoice(order, invoiceNumber) {
 
     const date = new Date().toDateString();
     doc.fontSize(10)
-      .text(`Invoice No: WWW${invoiceNumber.toString().padStart(4, "0")}`, 350, 80)
+      .text(`Invoice No: ${invoiceNumber}`, 350, 80)
       .text(`Date: ${date}`, 350, 95)
       .text(`Due Date: ${date}`, 350, 110);
 
@@ -106,27 +106,36 @@ function generateInvoice(order, invoiceNumber) {
       .text(`GH₵${unitPrice}.00`, 400, 283)
       .text(`GH₵${subtotal}.00`, 480, 283);
 
-    doc.moveTo(50, 320).lineTo(550, 320).stroke();
-    doc.fontSize(10)
-      .text("SUBTOTAL:", 380, 330).text(`GH₵${subtotal}.00`, 480, 330)
-      .text(`DISCOUNT (${discount}%):`, 380, 348).text(`-GH₵${discountAmount}.00`, 480, 348)
-      .text("DELIVERY FEE:", 380, 366).text(`GH₵${deliveryFee}.00`, 480, 366);
+    // Rows 2–5 (empty)
+    for (let i = 2; i <= 5; i++) {
+      const y = 275 + (i - 1) * 22;
+      if (i % 2 === 0) doc.rect(50, y, 500, 22).fill("#ffffff");
+      else doc.rect(50, y, 500, 22).fill("#f8faff");
+      doc.fillColor("#000000").text(String(i), 55, y + 6);
+    }
+    const tableBottom = 275 + 5 * 22;
 
-    doc.moveTo(370, 385).lineTo(550, 385).stroke();
+    doc.moveTo(50, tableBottom).lineTo(550, tableBottom).stroke();
+    doc.fontSize(10)
+      .text("SUBTOTAL:", 380, tableBottom + 10).text(`GH₵${subtotal}.00`, 480, tableBottom + 10)
+      .text(`DISCOUNT (${discount}%):`, 380, tableBottom + 28).text(`-GH₵${discountAmount}.00`, 480, tableBottom + 28)
+      .text("DELIVERY FEE:", 380, tableBottom + 46).text(`GH₵${deliveryFee}.00`, 480, tableBottom + 46);
+
+    doc.moveTo(370, tableBottom + 65).lineTo(550, tableBottom + 65).stroke();
     doc.font("Helvetica-Bold").fontSize(12)
-      .text("GRAND TOTAL:", 380, 393)
-      .fillColor("#1a6fc4").text(`GH₵${grandTotal}.00`, 480, 393);
+      .text("GRAND TOTAL:", 380, tableBottom + 73)
+      .fillColor("#1a6fc4").text(`GH₵${grandTotal}.00`, 480, tableBottom + 73);
 
     doc.fillColor("#000000").font("Helvetica").fontSize(10)
-      .text("Delivery Date:", 50, 330)
-      .text(new Date(order.delivery).toDateString(), 50, 345)
-      .text("Payment Method:", 50, 363)
-      .text(order.paymentMethod || "To be confirmed", 50, 378);
+      .text("Delivery Date:", 50, tableBottom + 10)
+      .text(new Date(order.delivery).toDateString(), 50, tableBottom + 25)
+      .text("Payment Method:", 50, tableBottom + 43)
+      .text(order.paymentMethod || "To be confirmed", 50, tableBottom + 58);
 
-    doc.moveTo(50, 430).lineTo(550, 430).stroke();
+    doc.moveTo(50, tableBottom + 110).lineTo(550, tableBottom + 110).stroke();
     doc.fontSize(9).fillColor("#6b7280")
-      .text("Thank you for choosing White Water Wells LTD!", 50, 440, { align: "center", width: 500 })
-      .text("Pure. Reliable. Refreshing.", 50, 455, { align: "center", width: 500 });
+      .text("Thank you for choosing White Water Wells LTD!", 50, tableBottom + 120, { align: "center", width: 500 })
+      .text("Pure. Reliable. Refreshing.", 50, tableBottom + 135, { align: "center", width: 500 });
 
     doc.end();
     stream.on("finish", () => resolve(filePath));
@@ -145,7 +154,7 @@ async function sendInvoiceEmail(order, invoiceNumber, pdfPath) {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    subject: `Invoice WWW${invoiceNumber.toString().padStart(4, "0")} - White Water Wells LTD`,
+    subject: `Invoice ${invoiceNumber} - White Water Wells LTD`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #1a6fc4; padding: 20px; text-align: center;">
@@ -178,14 +187,14 @@ async function sendInvoiceEmail(order, invoiceNumber, pdfPath) {
         </div>
       </div>
     `,
-    attachments: [{ filename: `Invoice-WWW${invoiceNumber.toString().padStart(4, "0")}.pdf`, path: pdfPath }]
+    attachments: [{ filename: `Invoice-${invoiceNumber}.pdf`, path: pdfPath }]
   };
 
   await transporter.sendMail({ ...mailOptions, to: order.email });
   await transporter.sendMail({
     ...mailOptions,
     to: process.env.COMPANY_EMAIL,
-    subject: `New Order - Invoice WWW${invoiceNumber.toString().padStart(4, "0")} from ${order.name}`,
+    subject: `New Order - Invoice ${invoiceNumber} from ${order.name}`,
     html: mailOptions.html.replace("Thank you for your order", "New order received from")
   });
 
@@ -195,10 +204,7 @@ async function sendInvoiceEmail(order, invoiceNumber, pdfPath) {
 }
 
 function getInvoiceNumberFromOrder(order) {
-  if (!order?._id) return 1;
-  const hexTail = String(order._id).slice(-6);
-  const numeric = parseInt(hexTail, 16);
-  return Number.isFinite(numeric) ? (numeric % 1000000) : 1;
+  return order?.invoiceNumber || "WWW-UNKNOWN";
 }
 
 async function sendPaidOrderConfirmationEmail(order) {
@@ -301,6 +307,7 @@ const OrderSchema = new mongoose.Schema({
   total:         String,
   paymentMethod: String,
   transactionId: String,
+  invoiceNumber:   String,
   paymentStatus: { type: String, default: "pending" },
   notificationSent: { type: Boolean, default: false },
   notificationSentAt: Date
@@ -314,6 +321,7 @@ const WaybillSchema = new mongoose.Schema({
   address:         String,
   carNumber:       String,
   date:            Date,
+  items:           [{ quantity: String, description: String, remarks: String }],
   quantity:        String,
   description:     String,
   remarks:         String,
@@ -327,6 +335,26 @@ const WaybillSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Waybill = mongoose.model("Waybill", WaybillSchema);
 
+const CounterSchema = new mongoose.Schema({
+  key: { type: String, unique: true },
+  seq: { type: Number, default: 0 }
+});
+const Counter = mongoose.model("Counter", CounterSchema);
+
+async function generateWwwNumber(type) {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const result = await Counter.findOneAndUpdate(
+    { key: `${type}-${yyyy}` },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  const seq = String(result.seq).padStart(2, "0");
+  return `WWW${yyyy}${mm}${dd}${seq}`;
+}
+
 // ============================================
 // AUTH ROUTES
 // ============================================
@@ -336,6 +364,10 @@ app.post("/signup", async (req, res) => {
     const { fullName, email, phone, password, securityQuestion, securityAnswer } = req.body;
     if (!fullName || !email || !password || !securityQuestion || !securityAnswer)
       return res.status(400).json({ message: "Missing required fields" });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return res.status(400).json({ message: "Invalid email format" });
 
     const existing = await User.findOne({ email });
     if (existing)
@@ -359,6 +391,10 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ message: "Missing email or password" });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return res.status(400).json({ message: "Invalid email format" });
 
     const user = await User.findOne({ email });
     if (!user)
@@ -454,7 +490,8 @@ app.post("/reset-password", async (req, res) => {
 
 app.post("/order", async (req, res) => {
   try {
-    const order = new Order(req.body);
+    const invoiceNumber = await generateWwwNumber("invoice");
+    const order = new Order({ ...req.body, invoiceNumber });
     await order.save();
     res.status(201).json({ message: "Order placed!", order });
 
@@ -546,15 +583,15 @@ app.patch("/admin/orders/:id/paid", async (req, res) => {
 
 app.post("/waybill", async (req, res) => {
   try {
-    const waybillCount = await Waybill.countDocuments() + 1;
-    req.body.waybillNumber = `WWW2026${String(waybillCount).padStart(4, "0")}`;
+    req.body.waybillNumber = await generateWwwNumber("waybill");
     req.body.emailSent = false;
     req.body.emailSentAt = null;
 
     const waybill = new Waybill(req.body);
     await waybill.save();
 
-    await transporter.sendMail({
+    // Send email in background — don't block the response
+    transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.COMPANY_EMAIL,
       subject: `New Waybill ${req.body.waybillNumber} - White Water Wells LTD`,
@@ -572,10 +609,9 @@ app.post("/waybill", async (req, res) => {
               <tr><td style="padding:8px; font-weight:700;">Address:</td><td style="padding:8px;">${req.body.address}</td></tr>
               <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Car Number:</td><td style="padding:8px;">${req.body.carNumber}</td></tr>
               <tr><td style="padding:8px; font-weight:700;">Date:</td><td style="padding:8px;">${req.body.date}</td></tr>
-              <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Quantity:</td><td style="padding:8px;">${req.body.quantity}</td></tr>
-              <tr><td style="padding:8px; font-weight:700;">Description:</td><td style="padding:8px;">${req.body.description}</td></tr>
-              <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Remarks:</td><td style="padding:8px;">${req.body.remarks || "N/A"}</td></tr>
-              <tr><td style="padding:8px; font-weight:700;">Despatched By:</td><td style="padding:8px;">${req.body.despatchedBy}</td></tr>
+              <tr style="background:#fff;"><td colspan="2" style="padding:8px; font-weight:700;">Items:</td></tr>
+              <tr><td colspan="2" style="padding:0;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="background:#dbeafe;"><th style="padding:8px; text-align:left;">S/N</th><th style="padding:8px; text-align:left;">Quantity</th><th style="padding:8px; text-align:left;">Description</th><th style="padding:8px; text-align:left;">Remarks</th></tr></thead><tbody>${(req.body.items||[]).filter(it=>it.quantity||it.description).map((it,i)=>`<tr style="background:${i%2===0?'#fff':'#f8faff'};"><td style="padding:8px;">${i+1}</td><td style="padding:8px;">${it.quantity||''}</td><td style="padding:8px;">${it.description||''}</td><td style="padding:8px;">${it.remarks||''}</td></tr>`).join('')}</tbody></table></td></tr>
+              <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Despatched By:</td><td style="padding:8px;">${req.body.despatchedBy}</td></tr>
               <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Received By:</td><td style="padding:8px;">${req.body.receivedBy || "N/A"}</td></tr>
               <tr><td style="padding:8px; font-weight:700;">Driver's Signature:</td><td style="padding:8px;">${req.body.driverSignature || "N/A"}</td></tr>
               <tr style="background:#fff;"><td style="padding:8px; font-weight:700;">Submitted By:</td><td style="padding:8px;">${req.body.submittedBy}</td></tr>
@@ -586,11 +622,14 @@ app.post("/waybill", async (req, res) => {
           </div>
         </div>
       `
+    }).then(async () => {
+      waybill.emailSent = true;
+      waybill.emailSentAt = new Date();
+      await waybill.save();
+      console.log(`Waybill email sent for ${req.body.waybillNumber} to ${process.env.COMPANY_EMAIL}`);
+    }).catch(err => {
+      console.error(`Waybill email FAILED for ${req.body.waybillNumber}:`, err.message);
     });
-
-    waybill.emailSent = true;
-    waybill.emailSentAt = new Date();
-    await waybill.save();
 
     res.json({ message: "Waybill submitted successfully!", waybill });
   } catch (err) {
@@ -611,8 +650,14 @@ app.get("/waybills", async (req, res) => {
 
 app.get("/waybills/count", async (req, res) => {
   try {
-    const count = await Waybill.countDocuments();
-    res.json({ count });
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const counter = await Counter.findOne({ key: `waybill-${yyyy}` });
+    const nextSeq = String((counter?.seq || 0) + 1).padStart(2, "0");
+    const nextNumber = `WWW${yyyy}${mm}${dd}${nextSeq}`;
+    res.json({ count: counter?.seq || 0, nextNumber });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -803,4 +848,13 @@ app.get("/admin/analytics/custom-waybills", async (req, res) => {
 // ============================================
 // START SERVER
 // ============================================
-app.listen(5000, () => console.log("Server running on port 5000"));
+app.listen(5000, () => {
+  console.log("Server running on port 5000");
+  transporter.verify((err, success) => {
+    if (err) {
+      console.error("EMAIL TRANSPORTER ERROR - credentials may be wrong:", err.message);
+    } else {
+      console.log("Email transporter ready. Sending from:", process.env.EMAIL_USER, "-> Company:", process.env.COMPANY_EMAIL);
+    }
+  });
+});
