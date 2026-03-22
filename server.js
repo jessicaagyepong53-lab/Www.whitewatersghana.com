@@ -13,7 +13,7 @@ const app = express();
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "x-staff-role", "x-user-email"]
 }));
 app.use(express.json());
 
@@ -40,6 +40,10 @@ const STAFF_LOGIN_PROFILES = {
   "gardiner11wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 11" },
   "supervisorb@whitewaterghana.com": { role: "supervisor", username: "Supervisor B" }
 };
+
+function isAdminRequest(req) {
+  return String(req.headers["x-staff-role"] || "").trim().toLowerCase() === "admin";
+}
 
 // ============================================
 // GENERATE INVOICE PDF
@@ -538,6 +542,28 @@ app.get("/orders/:email", async (req, res) => {
   }
 });
 
+app.delete("/orders/:id", async (req, res) => {
+  try {
+    const requesterEmail = String(req.headers["x-user-email"] || req.body?.email || "").trim().toLowerCase();
+    if (!requesterEmail) {
+      return res.status(400).json({ message: "Missing customer email" });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    if (String(order.email || "").trim().toLowerCase() !== requesterEmail) {
+      return res.status(403).json({ message: "You can only delete your own orders" });
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
+    res.json({ message: "Order deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 app.get("/order/:id", async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -551,6 +577,7 @@ app.get("/order/:id", async (req, res) => {
 
 app.get("/admin/orders", async (req, res) => {
   try {
+    if (!isAdminRequest(req)) return res.status(403).json({ message: "Admin access only" });
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json({ orders });
   } catch (err) {
@@ -561,6 +588,7 @@ app.get("/admin/orders", async (req, res) => {
 
 app.patch("/admin/orders/:id/paid", async (req, res) => {
   try {
+    if (!isAdminRequest(req)) return res.status(403).json({ message: "Admin access only" });
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { paymentStatus: "paid" },
@@ -571,6 +599,18 @@ app.patch("/admin/orders/:id/paid", async (req, res) => {
     triggerPaidOrderEmails(order).catch(err => console.error("Paid-order email error:", err));
 
     res.json({ message: "Order marked as paid!", order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/admin/orders/:id", async (req, res) => {
+  try {
+    if (!isAdminRequest(req)) return res.status(403).json({ message: "Admin access only" });
+    const order = await Order.findByIdAndDelete(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ message: "Order deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -642,6 +682,18 @@ app.get("/waybills", async (req, res) => {
   try {
     const waybills = await Waybill.find().sort({ createdAt: -1 });
     res.json({ waybills });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/admin/waybills/:id", async (req, res) => {
+  try {
+    if (!isAdminRequest(req)) return res.status(403).json({ message: "Admin access only" });
+    const waybill = await Waybill.findByIdAndDelete(req.params.id);
+    if (!waybill) return res.status(404).json({ message: "Waybill not found" });
+    res.json({ message: "Waybill deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

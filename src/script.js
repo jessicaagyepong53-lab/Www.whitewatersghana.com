@@ -809,6 +809,7 @@ if (ordersContainer) {
               <div style="display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); flex-wrap:wrap;">
                 ${!isPaid ? `<button onclick="payNow(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#d97706; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-credit-card"></i> Pay Now</button>` : ''}
                 <button onclick="reorder(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:var(--blue-mid); color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-rotate-right"></i> Reorder</button>
+                <button onclick="deleteOrder(${i}, this)" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-trash"></i> Delete Order</button>
               </div>
             </div>
           `;
@@ -822,6 +823,32 @@ if (ordersContainer) {
 
     window.reorder = function(i) {
       window.location.href = "order.html#Place-order";
+    };
+
+    window.deleteOrder = async function(i, btn) {
+      const order = window._orderHistory[i];
+      if (!order?._id) return;
+      if (!confirm("Delete this order? This cannot be undone.")) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+
+      try {
+        const res = await fetch(`${API}/orders/${order._id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", "x-user-email": email },
+          body: JSON.stringify({ email })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Failed to delete order");
+
+        showToast("Order Deleted", "Your order was deleted successfully.", "success");
+        setTimeout(() => window.location.reload(), 500);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete Order';
+        showToast("Delete Failed", err.message || "Could not delete order.", "error");
+      }
     };
       })
       .catch(() => {
@@ -1073,6 +1100,10 @@ if (waybillForm) {
   const staffRole = localStorage.getItem("staff-role");
 
   if (!staffToken) { window.location.href = "staff-login.html"; }
+  if (staffRole === "supervisor") {
+    alert("Supervisors are restricted to the supervisor portal.");
+    window.location.href = "admin-invoices.html";
+  }
 
   const welcomeEl = document.getElementById("staff-welcome");
   if (welcomeEl && staffName) welcomeEl.textContent = staffName;
@@ -1725,6 +1756,9 @@ fetch(`${API}/admin/analytics`)
               ` : isPaidOrder(order)
                 ? `<p style="color:#16a34a; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> ${getAdminOrderStatusMeta(order).actionText}</p>`
                 : `<p style="color:#d97706; font-size:13px; font-weight:600;"><i class="fa-solid fa-clock"></i> Awaiting Customer Payment</p>`}
+              <button onclick="deleteAoOrder('${order._id}', this)" style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
             </div>
           </div>
         </div>
@@ -1747,7 +1781,10 @@ fetch(`${API}/admin/analytics`)
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
       try {
-        const res = await fetch(`${API}/admin/orders/${orderId}/paid`, { method: "PATCH", headers: { "Content-Type": "application/json" } });
+        const res = await fetch(`${API}/admin/orders/${orderId}/paid`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "x-staff-role": _aoRole }
+        });
         const result = await res.json();
         if (res.ok) {
           const card = document.getElementById(`ao-card-${orderId}`);
@@ -1770,9 +1807,32 @@ fetch(`${API}/admin/analytics`)
       }
     };
 
+    window.deleteAoOrder = async function(orderId, btn) {
+      if (!confirm("Delete this document? This cannot be undone.")) return;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+      try {
+        const res = await fetch(`${API}/admin/orders/${orderId}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", "x-staff-role": _aoRole }
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Failed to delete order");
+
+        allAoOrders = allAoOrders.filter(o => o._id !== orderId);
+        const card = document.getElementById(`ao-card-${orderId}`);
+        if (card) card.remove();
+        showToast("Document Deleted", "Order document deleted successfully.", "success");
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete';
+        showToast("Delete Failed", err.message || "Could not delete document.", "error");
+      }
+    };
+
     const _aoCtrl = new AbortController();
     setTimeout(() => _aoCtrl.abort(), 8000);
-    fetch(`${API}/admin/orders`, { signal: _aoCtrl.signal })
+    fetch(`${API}/admin/orders`, { signal: _aoCtrl.signal, headers: { "x-staff-role": _aoRole } })
       .then(res => res.json())
       .then(data => {
         allAoOrders = data.orders || [];
@@ -1881,6 +1941,7 @@ fetch(`${API}/admin/analytics`)
               <div style="text-align:right;">
                 <p style="font-size:13px; color:var(--text-muted); margin-bottom:4px;">Invoice Total</p>
                 <p style="font-size:18px; font-weight:700; color:var(--blue-deep);">GH₵${Number(invoice.amount || 0).toFixed(2)}</p>
+                ${_invRole === "admin" ? `<button onclick="deleteInvoiceDoc('${invoice._id}', this)" style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; padding:7px 12px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;"><i class="fa-solid fa-trash"></i> Delete Document</button>` : ''}
               </div>
             </div>
           </div>
@@ -1895,6 +1956,33 @@ fetch(`${API}/admin/analytics`)
       if (type === "awaiting") filtered = allInvoices.filter(invoice => !isSentSupervisorInvoice(invoice));
       if (type === "sent") filtered = allInvoices.filter(invoice => isSentSupervisorInvoice(invoice));
       renderInvoices(filtered);
+    };
+
+    window.deleteInvoiceDoc = async function(waybillId, btn) {
+      if (_invRole !== "admin") {
+        showToast("Not Allowed", "Only admins can delete documents.", "error");
+        return;
+      }
+      if (!confirm("Delete this invoice document? This cannot be undone.")) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+      try {
+        const res = await fetch(`${API}/admin/waybills/${waybillId}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", "x-staff-role": _invRole }
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Failed to delete invoice document");
+
+        allInvoices = allInvoices.filter(inv => inv._id !== waybillId);
+        renderInvoices(allInvoices);
+        showToast("Document Deleted", "Invoice document deleted successfully.", "success");
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete Document';
+        showToast("Delete Failed", err.message || "Could not delete invoice document.", "error");
+      }
     };
 
     const _invCtrl = new AbortController();
