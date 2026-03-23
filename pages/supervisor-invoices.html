@@ -48,19 +48,180 @@
 
   <section style="padding:60px 80px; max-width:1200px; margin:0 auto;">
 
-    <!-- Filter Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
-      <button onclick="filterInvoices('all')" id="inv-filter-all" class="filter-btn active-filter">All Invoices</button>
-      <button onclick="filterInvoices('awaiting')" id="inv-filter-awaiting" class="filter-btn">Awaiting Send</button>
-      <button onclick="filterInvoices('sent')" id="inv-filter-sent" class="filter-btn">Sent to Email</button>
+    <!-- Staff Name Banner -->
+    <div id="inv-staff-banner" style="background:var(--blue-light); border-radius:var(--radius-lg); padding:14px 20px; margin-bottom:28px; font-size:14px; color:var(--blue-deep); font-weight:600; display:flex; align-items:center; gap:10px;">
+      <i class="fa-solid fa-user-shield"></i>
+      <span>Logged in as: <span id="inv-staff-name-banner"></span></span>
     </div>
 
-    <div id="inv-loading" style="text-align:center; padding:40px; color:var(--text-muted);">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
-      <p style="margin-top:12px;">Loading supervisor invoices...</p>
+    <!-- Invoice Header -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; padding-bottom:24px; border-bottom:2px solid var(--blue-light);">
+      <div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:22px; margin-bottom:8px;">White Water Wells LTD</h2>
+        <p style="font-size:13px; color:var(--text-muted);">P.O. Box 18204, Accra</p>
+        <p style="font-size:13px; color:var(--text-muted);">Comm 25 Peace B Down, Accra-Prampram Road</p>
+        <p style="font-size:13px; color:var(--text-muted);">GPS: GN-0709-4736</p>
+        <p style="font-size:13px; color:var(--text-muted);">0243108878 / 0244483793</p>
+      </div>
+      <div style="text-align:right;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:28px; color:var(--blue-mid);">INVOICE</h2>
+        <p style="font-size:13px; color:var(--text-muted);">No: <span id="inv-form-number" style="font-weight:700; color:var(--text-dark);">Loading...</span></p>
+      </div>
     </div>
 
-    <div id="invoices-container"></div>
+    <!-- Invoice Form -->
+    <form id="invoiceForm" style="max-width:900px;">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="inv-form-to">Bill To*</label>
+          <input type="text" id="inv-form-to" placeholder="Recipient name or company" required>
+          <p class="input-error-msg" id="inv-err-to">Please enter recipient</p>
+        </div>
+        <div class="form-group">
+          <label for="inv-form-driver-name">Driver's Name*</label>
+          <input type="text" id="inv-form-driver-name" placeholder="Driver's full name" required>
+          <p class="input-error-msg" id="inv-err-driver">Please enter driver's name</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="inv-form-address">Address*</label>
+        <input type="text" id="inv-form-address" placeholder="Delivery address" required>
+        <p class="input-error-msg" id="inv-err-address">Please enter address</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="inv-form-car-number">Car Number*</label>
+          <input type="text" id="inv-form-car-number" placeholder="e.g. GR-1234-20" required>
+          <p class="input-error-msg" id="inv-err-car">Please enter car number</p>
+        </div>
+        <div class="form-group">
+          <label for="inv-form-date">Date*</label>
+          <input type="date" id="inv-form-date" required>
+          <p class="input-error-msg" id="inv-err-date">Please select a date</p>
+        </div>
+      </div>
+
+      <div class="form-group-title" style="margin-top:32px;">
+        <i class="fa-solid fa-money-bill-wave"></i>
+        <h2>Amount</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="inv-form-amount">Invoice Amount (GH₵)*</label>
+        <input type="number" id="inv-form-amount" placeholder="0.00" min="0" step="0.01" required>
+        <p class="input-error-msg" id="inv-err-amount">Please enter the invoice amount</p>
+      </div>
+
+      <!-- Items Table -->
+      <div class="form-group-title" style="margin-top:32px;">
+        <i class="fa-solid fa-box"></i>
+        <h2>Items</h2>
+      </div>
+
+      <div style="border:1.5px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr; background:var(--blue-mid); color:white; padding:12px 16px; font-weight:600; font-size:14px;">
+          <span>S/N</span>
+          <span>Quantity</span>
+          <span>Description</span>
+          <span>Remarks</span>
+        </div>
+        <!-- Row 1 (required) -->
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr;">
+          <span style="border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">1</span>
+          <input type="text" id="inv-form-quantity-1" placeholder="e.g. 100 bags" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-description-1" placeholder="Sachet Water 500ml" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-remarks-1" placeholder="Optional" value="Sachet water" style="border:none; border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+        </div>
+        <!-- Row 2 -->
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr;">
+          <span style="border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">2</span>
+          <input type="text" id="inv-form-quantity-2" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-description-2" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-remarks-2" value="Sachet water" style="border:none; border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+        </div>
+        <!-- Row 3 -->
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr;">
+          <span style="border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">3</span>
+          <input type="text" id="inv-form-quantity-3" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-description-3" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-remarks-3" value="Sachet water" style="border:none; border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+        </div>
+        <!-- Row 4 -->
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr;">
+          <span style="border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">4</span>
+          <input type="text" id="inv-form-quantity-4" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-description-4" style="border:none; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-remarks-4" value="Sachet water" style="border:none; border-bottom:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+        </div>
+        <!-- Row 5 -->
+        <div style="display:grid; grid-template-columns:0.4fr 1fr 2fr 1fr;">
+          <span style="border-right:1px solid var(--border); padding:12px 16px; font-size:14px; font-weight:700; background:var(--blue-light); display:flex; align-items:center;">5</span>
+          <input type="text" id="inv-form-quantity-5" style="border:none; border-right:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-description-5" style="border:none; border-right:1px solid var(--border); padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+          <input type="text" id="inv-form-remarks-5" value="Sachet water" style="border:none; padding:12px 16px; font-size:14px; outline:none; background:var(--off-white);">
+        </div>
+      </div>
+      <p class="input-error-msg" id="inv-err-items">Please fill in at least row 1 (quantity and description)</p>
+
+      <!-- Signatures -->
+      <div class="form-group-title" style="margin-top:32px;">
+        <i class="fa-solid fa-signature"></i>
+        <h2>Signatures</h2>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="inv-form-despatched-by">Despatched By*</label>
+          <input type="text" id="inv-form-despatched-by" placeholder="Name of person despatching" required>
+          <p class="input-error-msg" id="inv-err-despatched">Please enter name</p>
+        </div>
+        <div class="form-group">
+          <label for="inv-form-received-by">Received By</label>
+          <input type="text" id="inv-form-received-by" placeholder="Name of person receiving">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="inv-form-driver-signature">Driver's Signature</label>
+        <input type="text" id="inv-form-driver-signature" placeholder="Driver's name as signature">
+      </div>
+
+      <p class="input-error-msg" id="inv-err-submit"></p>
+      <div id="inv-success" style="display:none; background:#e6f4ea; color:green; border:1px solid green; padding:12px; border-radius:8px; margin-bottom:16px; text-align:center; font-weight:600;">
+        <i class="fa-solid fa-circle-check"></i> Invoice submitted successfully! Email sent to company.
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="fa-solid fa-paper-plane"></i> Submit Invoice
+      </button>
+      <p class="form-note">Submitting this invoice will send a copy to the company email automatically.</p>
+
+    </form>
+
+    <!-- Previous Invoices -->
+    <div style="margin-top:48px; border-top:2px solid var(--blue-light); padding-top:28px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:26px; color:var(--blue-deep); margin:0;">Previous Invoices</h2>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">Invoices submitted through the supervisor portal</p>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+        <button onclick="filterInvoices('all')" id="inv-filter-all" class="filter-btn active-filter">All Invoices</button>
+        <button onclick="filterInvoices('awaiting')" id="inv-filter-awaiting" class="filter-btn">Awaiting Send</button>
+        <button onclick="filterInvoices('sent')" id="inv-filter-sent" class="filter-btn">Sent to Email</button>
+      </div>
+
+      <div id="inv-loading" style="text-align:center; padding:40px; color:var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+        <p style="margin-top:12px;">Loading supervisor invoices...</p>
+      </div>
+
+      <div id="invoices-container"></div>
+    </div>
 
   </section>
 

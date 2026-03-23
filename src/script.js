@@ -1,12 +1,12 @@
 const API = "https://white-water-wells.onrender.com";
 const APPROVED_STAFF_LOGINS = [
   "ceo9@whitewaterghana.com",
-  "manger25@whitewaterghana.com",
+  "manager25@whitewaterghana.com",
   "supervisor1@whitewaterghana.com"
 ];
 const ADMIN_STAFF_LOGINS = [
   "ceo9@whitewaterghana.com",
-  "manger25@whitewaterghana.com"
+  "manager25@whitewaterghana.com"
 ];
 const SUPERVISOR_STAFF_LOGINS = [
   "supervisor1@whitewaterghana.com"
@@ -2286,6 +2286,111 @@ fetch(`${API}/admin/analytics`)
 
     const _invWelcome = document.getElementById("staff-welcome");
     if (_invWelcome) _invWelcome.textContent = _invName;
+
+    const _invStaffBanner = document.getElementById("inv-staff-name-banner");
+    if (_invStaffBanner) _invStaffBanner.textContent = _invName;
+
+    // Set today's date on the invoice form
+    const _invFormDate = document.getElementById("inv-form-date");
+    if (_invFormDate) _invFormDate.value = new Date().toISOString().split("T")[0];
+
+    // Load next invoice number
+    let _invFormNumber = "Loading...";
+    function _refreshInvoiceFormNumber() {
+      fetch(`${API}/waybills/count`)
+        .then(r => r.json())
+        .then(d => {
+          _invFormNumber = d.nextNumber || "Unavailable";
+          const el = document.getElementById("inv-form-number");
+          if (el) el.textContent = _invFormNumber;
+        })
+        .catch(() => {
+          const el = document.getElementById("inv-form-number");
+          if (el) el.textContent = "Unavailable";
+        });
+    }
+    _refreshInvoiceFormNumber();
+
+    // Invoice form submit handler
+    const invoiceForm = document.getElementById("invoiceForm");
+    if (invoiceForm) {
+      invoiceForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
+        document.querySelectorAll(".input-error-msg").forEach(el => el.classList.remove("show"));
+
+        const to          = document.getElementById("inv-form-to").value.trim();
+        const driverName  = document.getElementById("inv-form-driver-name").value.trim();
+        const address     = document.getElementById("inv-form-address").value.trim();
+        const carNumber   = document.getElementById("inv-form-car-number").value.trim();
+        const date        = document.getElementById("inv-form-date").value;
+        const amount      = parseFloat(document.getElementById("inv-form-amount").value) || 0;
+        const items = [1,2,3,4,5].map(i => ({
+          quantity:    (document.getElementById(`inv-form-quantity-${i}`)?.value    || "").trim(),
+          description: (document.getElementById(`inv-form-description-${i}`)?.value || "").trim(),
+          remarks:     (document.getElementById(`inv-form-remarks-${i}`)?.value     || "").trim()
+        }));
+        const despatchedBy    = document.getElementById("inv-form-despatched-by").value.trim();
+        const receivedBy      = document.getElementById("inv-form-received-by").value.trim();
+        const driverSignature = document.getElementById("inv-form-driver-signature").value.trim();
+
+        let hasError = false;
+        if (!to)          { document.getElementById("inv-form-to").classList.add("input-error");           document.getElementById("inv-err-to").classList.add("show");         hasError = true; }
+        if (!driverName)  { document.getElementById("inv-form-driver-name").classList.add("input-error");  document.getElementById("inv-err-driver").classList.add("show");     hasError = true; }
+        if (!address)     { document.getElementById("inv-form-address").classList.add("input-error");      document.getElementById("inv-err-address").classList.add("show");    hasError = true; }
+        if (!carNumber)   { document.getElementById("inv-form-car-number").classList.add("input-error");   document.getElementById("inv-err-car").classList.add("show");        hasError = true; }
+        if (!date)        { document.getElementById("inv-form-date").classList.add("input-error");         document.getElementById("inv-err-date").classList.add("show");       hasError = true; }
+        if (!items[0].quantity || !items[0].description) { document.getElementById("inv-err-items").classList.add("show"); hasError = true; }
+        if (!despatchedBy){ document.getElementById("inv-form-despatched-by").classList.add("input-error"); document.getElementById("inv-err-despatched").classList.add("show"); hasError = true; }
+        if (!amount || amount <= 0) { document.getElementById("inv-form-amount").classList.add("input-error"); document.getElementById("inv-err-amount").classList.add("show"); hasError = true; }
+        if (hasError) return;
+
+        const submitBtn = invoiceForm.querySelector(".submit-btn");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "Submitting...";
+
+        try {
+          const res = await fetch(`${API}/waybill`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${_invToken}` },
+            body: JSON.stringify({
+              to, driverName, address, carNumber, date, items,
+              quantity: items[0].quantity, description: items[0].description, remarks: items[0].remarks,
+              despatchedBy, receivedBy, driverSignature,
+              waybillNumber: _invFormNumber, submittedBy: _invName, amount
+            })
+          });
+          const result = await res.json();
+
+          if (res.ok) {
+            showToast("Invoice Submitted!", "Invoice sent to the company email successfully.", "success");
+            document.getElementById("inv-success").style.display = "block";
+            invoiceForm.reset();
+            document.getElementById("inv-form-date").value = new Date().toISOString().split("T")[0];
+            [1,2,3,4,5].forEach(i => { const el = document.getElementById(`inv-form-remarks-${i}`); if (el) el.value = "Sachet water"; });
+            _refreshInvoiceFormNumber();
+            // Reload previous invoices list
+            document.getElementById("inv-loading").style.display = "block";
+            invoicesContainer.innerHTML = "";
+            fetch(`${API}/waybills`)
+              .then(r => r.json())
+              .then(d => { allInvoices = d.waybills || []; renderInvoices(allInvoices); })
+              .catch(() => {});
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            document.getElementById("inv-err-submit").textContent = result.message || "Failed to submit. Please try again.";
+            document.getElementById("inv-err-submit").classList.add("show");
+          }
+        } catch (err) {
+          document.getElementById("inv-err-submit").textContent = "Something went wrong. Please try again.";
+          document.getElementById("inv-err-submit").classList.add("show");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Invoice';
+        }
+      });
+    }
 
     // Hide admin-only nav links for supervisors
     if (_invRole === "supervisor") {

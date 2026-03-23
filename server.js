@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
 
 const STAFF_LOGIN_PROFILES = {
   "ceo9@whitewaterghana.com": { role: "admin", username: "CEO 9" },
-  "manger25@whitewaterghana.com": { role: "admin", username: "Manager 25" },
+  "manager25@whitewaterghana.com": { role: "admin", username: "Manager 25" },
   "supervisor1@whitewaterghana.com": { role: "supervisor", username: "Supervisor 1" }
 };
 
