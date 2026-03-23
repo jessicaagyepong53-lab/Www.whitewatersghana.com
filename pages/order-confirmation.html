@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmed</title>
+  <title>Confirm Order</title>
   <script src="https://kit.fontawesome.com/ac7beb975d.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="../src/style.css">
 </head>
@@ -53,9 +53,9 @@
         <div style="width:80px; height:80px; background:#e6f4ea; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
           <i class="fa-solid fa-circle-check" style="font-size:36px; color:#16a34a;"></i>
         </div>
-        <h1 style="font-family:'Playfair Display',serif; font-size:32px; margin-bottom:8px;">Order Confirmed!</h1>
-        <p style="color:var(--text-muted);">Thank you! We will contact you shortly to confirm your order.</p>
-        <p style="color:var(--text-muted); font-size:13px; margin-top:8px;">An invoice has been sent to your email.</p>
+        <h1 style="font-family:'Playfair Display',serif; font-size:32px; margin-bottom:8px;">Confirm Your Order</h1>
+        <p style="color:var(--text-muted);">Review your invoice details, then save the order and continue to payment.</p>
+        <p style="color:var(--text-muted); font-size:13px; margin-top:8px;">Your invoice number will be generated when you finalize the order.</p>
       </div>
 
       <!-- Invoice Box -->
@@ -137,10 +137,11 @@
       </div>
 
       <!-- Finalize Button -->
-      <div style="display:flex; gap:16px;">
-        <button onclick="finalizeOrder()" class="submit-btn" style="background:#16a34a;">
-          <i class="fa-solid fa-circle-check"></i> Finalize Order
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <button id="finalize-order-btn" onclick="finalizeOrder()" class="submit-btn" style="background:#16a34a;">
+          <i class="fa-solid fa-circle-check"></i> Save Order & Continue to Payment
         </button>
+        <p id="finalize-order-message" class="input-error-msg" style="margin:0; align-self:center;"></p>
         <a href="order-history.html" class="submit-btn" style="text-decoration:none; background:var(--blue-deep);">
           <i class="fa-solid fa-clock-rotate-left"></i> View Order History
         </a>

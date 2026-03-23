@@ -36,9 +36,9 @@ const transporter = nodemailer.createTransport({
 });
 
 const STAFF_LOGIN_PROFILES = {
-  "gardiner9wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 9" },
-  "gardiner11wwwl@whitewaterghana": { role: "admin", username: "Gardiner Admin 11" },
-  "supervisorb@whitewaterghana.com": { role: "supervisor", username: "Supervisor B" }
+  "ceo9@whitewaterghana.com": { role: "admin", username: "CEO 9" },
+  "manger25@whitewaterghana.com": { role: "admin", username: "Manager 25" },
+  "supervisor1@whitewaterghana.com": { role: "supervisor", username: "Supervisor 1" }
 };
 
 function isAdminRequest(req) {

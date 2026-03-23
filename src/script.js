@@ -1,8 +1,8 @@
 const API = "https://white-water-wells.onrender.com";
 const APPROVED_STAFF_LOGINS = [
-  "gardiner9wwwl@whitewaterghana",
-  "gardiner11wwwl@whitewaterghana",
-  "supervisorb@whitewaterghana.com"
+  "ceo9@whitewaterghana.com",
+  "manger25@whitewaterghana.com",
+  "supervisor1@whitewaterghana.com"
 ];
 
 function fallbackNameFromEmail(email) {
@@ -215,6 +215,267 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initMobileNav);
 } else {
   initMobileNav();
+}
+
+const PRODUCT_NAMES = {
+  "sachet-water": "Sachet Water - 500ml",
+  "bulk-purchase": "Sachet Water - Bulk Purchase"
+};
+
+const ORDER_TYPE_NAMES = {
+  "one-time": "One-Time Purchase",
+  "weekly": "Weekly Subscription",
+  "biweekly": "Bi-Weekly Subscription",
+  "monthly": "Monthly Subscription"
+};
+
+const REORDER_INTERVALS = {
+  weekly: 7,
+  biweekly: 14,
+  monthly: 30
+};
+
+const REORDER_REMINDER_WINDOWS = new Set([0, 1]);
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+let applyStoredReorderDraft = null;
+let refreshReorderReminderSurfaces = null;
+
+function getCustomerPagePath(pageName) {
+  return window.location.pathname.includes("/pages/") ? pageName : `pages/${pageName}`;
+}
+
+function normalizeDateValue(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date, days) {
+  const next = normalizeDateValue(date) || new Date();
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function formatDateKey(date) {
+  const safeDate = normalizeDateValue(date);
+  if (!safeDate) return "";
+  return [
+    safeDate.getFullYear(),
+    String(safeDate.getMonth() + 1).padStart(2, "0"),
+    String(safeDate.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function getDaysBetween(fromDate, toDate) {
+  const from = normalizeDateValue(fromDate);
+  const to = normalizeDateValue(toDate);
+  if (!from || !to) return null;
+  return Math.round((to - from) / DAY_IN_MS);
+}
+
+function getReorderIntervalDays(orderType) {
+  return REORDER_INTERVALS[orderType] || 0;
+}
+
+function isSubscriptionOrder(order) {
+  return Boolean(getReorderIntervalDays(order?.orderType));
+}
+
+function getNextReorderDueDate(order, referenceDate = new Date()) {
+  const intervalDays = getReorderIntervalDays(order?.orderType);
+  const baseDate = normalizeDateValue(order?.delivery || order?.createdAt);
+  const today = normalizeDateValue(referenceDate);
+
+  if (!intervalDays || !baseDate || !today) return null;
+
+  const diffDays = getDaysBetween(baseDate, today);
+  const cycles = diffDays > 0 ? Math.ceil(diffDays / intervalDays) : 0;
+  return addDays(baseDate, cycles * intervalDays);
+}
+
+function getReminderStorageKey(order, dueDate) {
+  const orderKey = order?._id || `${order?.email || "customer"}:${formatDateKey(order?.delivery || order?.createdAt)}`;
+  return `reorder-reminder-dismissed:${orderKey}:${formatDateKey(dueDate)}`;
+}
+
+function isReminderDismissed(order, dueDate) {
+  return localStorage.getItem(getReminderStorageKey(order, dueDate)) === "1";
+}
+
+function dismissReorderReminder(order, dueDate) {
+  localStorage.setItem(getReminderStorageKey(order, dueDate), "1");
+}
+
+function getSubscriptionReminder(order, referenceDate = new Date()) {
+  if (!isSubscriptionOrder(order)) return null;
+
+  const nextDueDate = getNextReorderDueDate(order, referenceDate);
+  const today = normalizeDateValue(referenceDate);
+  const productLabel = PRODUCT_NAMES[order.product] || order.product || "Subscription order";
+  const orderTypeLabel = ORDER_TYPE_NAMES[order.orderType] || order.orderType || "Subscription";
+
+  if (!nextDueDate || !today) return null;
+
+  const daysUntil = getDaysBetween(today, nextDueDate);
+  const isDueSoon = REORDER_REMINDER_WINDOWS.has(daysUntil);
+
+  return {
+    order,
+    productLabel,
+    orderTypeLabel,
+    nextDueDate,
+    daysUntil,
+    isDueSoon,
+    isDismissed: isReminderDismissed(order, nextDueDate),
+    headline: daysUntil === 0 ? "Reorder due today" : daysUntil === 1 ? "Reorder due tomorrow" : `Next reorder due ${nextDueDate.toDateString()}`,
+    detail: daysUntil === 0
+      ? `${productLabel} is due for its next ${orderTypeLabel.toLowerCase()} delivery today.`
+      : daysUntil === 1
+        ? `${productLabel} is due for its next ${orderTypeLabel.toLowerCase()} delivery tomorrow.`
+        : `${productLabel} is scheduled again on ${nextDueDate.toDateString()}.`
+  };
+}
+
+function getDueSoonSubscriptionReminders(orders, referenceDate = new Date()) {
+  return (orders || [])
+    .map(order => getSubscriptionReminder(order, referenceDate))
+    .filter(reminder => reminder && reminder.isDueSoon && !reminder.isDismissed)
+    .sort((left, right) => {
+      if (left.daysUntil !== right.daysUntil) return left.daysUntil - right.daysUntil;
+      return left.nextDueDate - right.nextDueDate;
+    });
+}
+
+function getReminderToastKey(reminder, surfaceKey) {
+  const orderKey = reminder?.order?._id || formatDateKey(reminder?.order?.delivery || reminder?.order?.createdAt);
+  return `reorder-reminder-toast:${surfaceKey}:${orderKey}:${formatDateKey(reminder?.nextDueDate)}`;
+}
+
+function maybeShowReorderToast(reminders, surfaceKey) {
+  const reminder = reminders[0];
+  if (!reminder) return;
+
+  const toastKey = getReminderToastKey(reminder, surfaceKey);
+  if (localStorage.getItem(toastKey) === "1") return;
+
+  showToast(
+    reminder.daysUntil === 0 ? "Reorder Due Today" : "Reorder Due Tomorrow",
+    `${reminder.productLabel} is ready for your next order.`,
+    "info",
+    6500
+  );
+  localStorage.setItem(toastKey, "1");
+}
+
+function buildReorderDraft(order) {
+  const tomorrow = addDays(new Date(), 1);
+  const suggestedDueDate = getNextReorderDueDate(order) || tomorrow;
+  const safeDeliveryDate = suggestedDueDate >= tomorrow ? suggestedDueDate : tomorrow;
+
+  return {
+    name: order?.name || "",
+    phone: order?.phone || "",
+    email: order?.email || localStorage.getItem("email") || "",
+    region: order?.region || "",
+    district: order?.district || "",
+    streetAddress: order?.streetAddress || "",
+    product: order?.product || "",
+    quantity: order?.quantity || "",
+    orderType: order?.orderType || "",
+    delivery: formatDateKey(safeDeliveryDate),
+    timeSlot: order?.timeSlot || "",
+    instructions: order?.instructions || ""
+  };
+}
+
+function startReorder(order) {
+  if (!order) return;
+
+  localStorage.setItem("reorderDraft", JSON.stringify(buildReorderDraft(order)));
+
+  if (typeof applyStoredReorderDraft === "function" && document.getElementById("orderForm")) {
+    applyStoredReorderDraft(true);
+    const orderSection = document.getElementById("Place-order");
+    if (orderSection) {
+      orderSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return;
+  }
+
+  window.location.href = `${getCustomerPagePath("order.html")}#Place-order`;
+}
+
+window._reorderReminderRegistry = {};
+
+window.startReminderReorder = function(reminderId) {
+  const reminder = window._reorderReminderRegistry[reminderId];
+  if (reminder) {
+    startReorder(reminder.order);
+  }
+  return false;
+};
+
+window.dismissReminder = function(reminderId) {
+  const reminder = window._reorderReminderRegistry[reminderId];
+  if (!reminder) return false;
+
+  dismissReorderReminder(reminder.order, reminder.nextDueDate);
+  showToast("Reminder Snoozed", "We will show this reminder again on the next cycle.", "info");
+
+  if (typeof refreshReorderReminderSurfaces === "function") {
+    refreshReorderReminderSurfaces({ skipToast: true });
+  }
+  return false;
+};
+
+function renderReminderBanner(container, reminders) {
+  if (!container) return;
+
+  if (!reminders.length) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  const reminder = reminders[0];
+  const reminderId = `${reminder.order._id || reminder.productLabel}-${formatDateKey(reminder.nextDueDate)}`;
+  window._reorderReminderRegistry[reminderId] = reminder;
+
+  container.style.display = "block";
+  container.innerHTML = `
+    <div class="reorder-reminder-banner ${reminder.daysUntil <= 1 ? "is-urgent" : ""}">
+      <div class="reorder-reminder-copy">
+        <div class="reorder-reminder-icon">
+          <i class="fa-solid fa-rotate-right"></i>
+        </div>
+        <div class="reorder-reminder-text">
+          <h3>${reminder.headline}</h3>
+          <p>${reminder.detail}</p>
+          <div class="reorder-reminder-meta">
+            <span class="reorder-reminder-pill ${reminder.isDueSoon ? "is-due" : ""}"><i class="fa-regular fa-calendar"></i> ${reminder.nextDueDate.toDateString()}</span>
+            <span class="reorder-reminder-pill"><i class="fa-solid fa-repeat"></i> ${reminder.orderTypeLabel}</span>
+            <span class="reorder-reminder-pill"><i class="fa-solid fa-box"></i> ${reminder.productLabel}</span>
+            ${reminders.length > 1 ? `<span class="reorder-reminder-pill"><i class="fa-solid fa-bell"></i> ${reminders.length - 1} more due soon</span>` : ""}
+          </div>
+        </div>
+      </div>
+      <div class="reorder-reminder-actions">
+        <button class="reorder-reminder-btn primary" onclick="return startReminderReorder('${reminderId}')"><i class="fa-solid fa-cart-shopping"></i> Reorder Now</button>
+        <button class="reorder-reminder-btn secondary" onclick="return dismissReminder('${reminderId}')"><i class="fa-regular fa-clock"></i> Remind Later</button>
+      </div>
+    </div>
+  `;
+}
+
+async function fetchCustomerOrders(email) {
+  const response = await fetch(`${API}/orders/${email}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to load orders.");
+  }
+  return data.orders || [];
 }
 
 // ============================================
@@ -485,6 +746,47 @@ if (orderForm) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   deliveryDate.min = tomorrow.toISOString().split("T")[0];
 
+  function setDistrictOptions(regionValue, districtValue) {
+    regionSelect.value = regionValue || "";
+    regionSelect.dispatchEvent(new Event("change"));
+    if (districtValue) {
+      districtSelect.value = districtValue;
+    }
+  }
+
+  applyStoredReorderDraft = function(showFeedback = false) {
+    const draft = JSON.parse(localStorage.getItem("reorderDraft") || "null");
+    if (!draft) return false;
+
+    document.getElementById("full-name").value = draft.name || "";
+    document.getElementById("telp").value = draft.phone || "";
+    document.getElementById("email").value = draft.email || localStorage.getItem("email") || "";
+    setDistrictOptions(draft.region, draft.district);
+    document.getElementById("street-address").value = draft.streetAddress || "";
+    document.getElementById("product").value = draft.product || "";
+    document.getElementById("product").dispatchEvent(new Event("change"));
+    document.getElementById("quantity").value = draft.quantity || "";
+    document.getElementById("order-type").value = draft.orderType || "";
+
+    const minDeliveryDate = normalizeDateValue(deliveryDate.min) || normalizeDateValue(tomorrow);
+    const requestedDeliveryDate = normalizeDateValue(draft.delivery) || minDeliveryDate;
+    const safeDeliveryDate = requestedDeliveryDate >= minDeliveryDate ? requestedDeliveryDate : minDeliveryDate;
+
+    deliveryDate.value = formatDateKey(safeDeliveryDate);
+    document.getElementById("time-slot").value = draft.timeSlot || "";
+    document.getElementById("instructions").value = draft.instructions || "";
+    calculateTotal();
+    localStorage.removeItem("reorderDraft");
+
+    if (showFeedback) {
+      showToast("Order Prefilled", "Your subscription details have been loaded. Review and place the next order.", "info", 5000);
+    }
+
+    return true;
+  };
+
+  applyStoredReorderDraft();
+
   orderForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -526,38 +828,11 @@ if (orderForm) {
 
     const submitBtn = orderForm.querySelector(".submit-btn");
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing Order...';
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing Invoice...';
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    try {
-      const res = await fetch(`${API}/order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-
-      const result = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem("confirmedOrder", JSON.stringify(result.order || orderData));
-        showToast("Order Submitted!", "We've received your order and will contact you shortly.", "success");
-        setTimeout(() => { window.location.href = "order-confirmation.html"; }, 1500);
-      } else {
-        document.getElementById("err-order").textContent = result.message || "Failed to place order. Please try again.";
-        document.getElementById("err-order").classList.add("show");
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Place Order';
-      }
-    } catch (err) {
-      clearTimeout(timeout);
-      localStorage.setItem("confirmedOrder", JSON.stringify(orderData));
-      showToast("Order Submitted!", "We've received your order and will contact you shortly.", "success");
-      setTimeout(() => { window.location.href = "order-confirmation.html"; }, 1500);
-    }
+    localStorage.setItem("confirmedOrder", JSON.stringify(orderData));
+    showToast("Order Ready", "Review the invoice and finalize the order on the next page.", "success");
+    setTimeout(() => { window.location.href = "order-confirmation.html"; }, 700);
   });
 }
 
@@ -756,6 +1031,33 @@ document.querySelectorAll(".toggle-password").forEach(icon => {
 
 
 // ============================================
+// REORDER REMINDER SURFACES
+// ============================================
+const homeReminderContainer = document.getElementById("home-reorder-reminder");
+const orderPageReminderContainer = document.getElementById("order-page-reorder-reminder");
+
+if ((homeReminderContainer || orderPageReminderContainer) && localStorage.getItem("token") && localStorage.getItem("email")) {
+  refreshReorderReminderSurfaces = async function(options = {}) {
+    try {
+      const orders = await fetchCustomerOrders(localStorage.getItem("email"));
+      const reminders = getDueSoonSubscriptionReminders(orders);
+
+      renderReminderBanner(homeReminderContainer, reminders);
+      renderReminderBanner(orderPageReminderContainer, reminders);
+
+      if (!options.skipToast) {
+        maybeShowReorderToast(reminders, homeReminderContainer ? "home" : "order-page");
+      }
+    } catch (err) {
+      renderReminderBanner(homeReminderContainer, []);
+      renderReminderBanner(orderPageReminderContainer, []);
+    }
+  };
+
+  refreshReorderReminderSurfaces();
+}
+
+// ============================================
 // ORDER HISTORY
 // ============================================
 const ordersContainer = document.getElementById("orders-container");
@@ -763,57 +1065,81 @@ const ordersContainer = document.getElementById("orders-container");
 if (ordersContainer) {
   const token = localStorage.getItem("token");
   const email = localStorage.getItem("email");
+  const loadingEl = document.getElementById("loading");
+  const noOrdersEl = document.getElementById("no-orders");
 
   if (!token) { window.location.href = "login.html"; }
   else {
-    const productNames = { "sachet-water": "Sachet Water - 500ml", "bulk-purchase": "Sachet Water - Bulk Purchase" };
-    const orderTypeNames = { "one-time": "One-Time Purchase", "weekly": "Weekly Subscription", "biweekly": "Bi-Weekly Subscription", "monthly": "Monthly Subscription" };
+    function renderOrderHistory(orders) {
+      const safeOrders = Array.isArray(orders) ? orders : [];
 
-    fetch(`${API}/orders/${email}`)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("loading").style.display = "none";
-        if (!data.orders || data.orders.length === 0) { document.getElementById("no-orders").style.display = "block"; return; }
+      if (safeOrders.length === 0) {
+        ordersContainer.innerHTML = "";
+        if (noOrdersEl) noOrdersEl.style.display = "block";
+        return;
+      }
 
-        window._orderHistory = [];
-        data.orders.forEach((order, i) => {
-          window._orderHistory.push(order);
-          const date = new Date(order.createdAt).toDateString();
-          const deliveryDate = new Date(order.delivery).toDateString();
-          const productName = productNames[order.product] || order.product;
-          const orderTypeName = orderTypeNames[order.orderType] || order.orderType;
-          const isPaid = order.paymentStatus === "paid";
+      if (noOrdersEl) noOrdersEl.style.display = "none";
 
-          ordersContainer.innerHTML += `
-            <div class="order-card">
-              <div class="order-card-header">
-                <h3><i class="fa-solid fa-cart-shopping" style="color:var(--blue-mid); margin-right:8px;"></i>${productName}</h3>
-                <span class="order-date">${date}</span>
-              </div>
-              <div class="order-card-body">
-                <div class="order-detail-item"><label>Quantity</label><p>${order.quantity} bag(s)</p></div>
-                <div class="order-detail-item"><label>Order Type</label><p>${orderTypeName}</p></div>
-                <div class="order-detail-item"><label>Delivery Date</label><p>${deliveryDate}</p></div>
-                <div class="order-detail-item"><label>Time Slot</label><p>${order.timeSlot || "Not specified"}</p></div>
-                <div class="order-detail-item"><label>Location</label><p>${order.district || ""}, ${order.region || ""}</p></div>
-                <div class="order-detail-item"><label>Address</label><p>${order.streetAddress || "Not specified"}</p></div>
-                <div class="order-detail-item"><label>Payment Method</label><p>${order.paymentMethod || "Not specified"}</p></div>
-              </div>
-              <div class="order-card-footer">
-                <span class="order-total-display">${order.total || "N/A"}</span>
-                <span class="order-status" style="background:${isPaid ? '#e6f4ea' : '#fef3c7'}; color:${isPaid ? '#16a34a' : '#d97706'};">
-                  <i class="fa-solid fa-${isPaid ? 'circle-check' : 'clock'}"></i>
-                  ${isPaid ? 'Paid' : 'Payment Pending'}
-                </span>
-              </div>
-              <div style="display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); flex-wrap:wrap;">
-                ${!isPaid ? `<button onclick="payNow(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#d97706; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-credit-card"></i> Pay Now</button>` : ''}
-                <button onclick="reorder(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:var(--blue-mid); color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-rotate-right"></i> Reorder</button>
-                <button onclick="deleteOrder(${i}, this)" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-trash"></i> Delete Order</button>
-              </div>
+      ordersContainer.innerHTML = safeOrders.map((order, i) => {
+        const createdDate = normalizeDateValue(order.createdAt) || new Date();
+        const deliveryDate = normalizeDateValue(order.delivery) || new Date();
+        const productName = PRODUCT_NAMES[order.product] || order.product;
+        const orderTypeName = ORDER_TYPE_NAMES[order.orderType] || order.orderType || "Not specified";
+        const isPaid = order.paymentStatus === "paid";
+        const reminder = getSubscriptionReminder(order);
+        const reminderMarkup = reminder
+          ? reminder.isDueSoon && !reminder.isDismissed
+            ? `
+                <div class="reorder-inline-note is-due">
+                  <strong>${reminder.headline}</strong>
+                  <p>${reminder.detail}</p>
+                  <div class="reorder-inline-actions">
+                    <button class="reorder-now-btn" onclick="reorder(${i})"><i class="fa-solid fa-rotate-right"></i> Reorder Now</button>
+                    <button class="remind-later-btn" onclick="snoozeOrderReminder(${i})"><i class="fa-regular fa-clock"></i> Remind Later</button>
+                  </div>
+                </div>
+              `
+            : `
+                <div class="reorder-inline-note">
+                  <strong>Next scheduled reorder</strong>
+                  <p>${productName} is next due on ${reminder.nextDueDate.toDateString()} for your ${reminder.orderTypeLabel.toLowerCase()} plan.</p>
+                </div>
+              `
+          : "";
+
+        return `
+          <div class="order-card">
+            <div class="order-card-header">
+              <h3><i class="fa-solid fa-cart-shopping" style="color:var(--blue-mid); margin-right:8px;"></i>${productName}</h3>
+              <span class="order-date">${createdDate.toDateString()}</span>
             </div>
-          `;
-        });
+            <div class="order-card-body">
+              <div class="order-detail-item"><label>Quantity</label><p>${order.quantity} bag(s)</p></div>
+              <div class="order-detail-item"><label>Order Type</label><p>${orderTypeName}</p></div>
+              <div class="order-detail-item"><label>Delivery Date</label><p>${deliveryDate.toDateString()}</p></div>
+              <div class="order-detail-item"><label>Time Slot</label><p>${order.timeSlot || "Not specified"}</p></div>
+              <div class="order-detail-item"><label>Location</label><p>${order.district || ""}, ${order.region || ""}</p></div>
+              <div class="order-detail-item"><label>Address</label><p>${order.streetAddress || "Not specified"}</p></div>
+              <div class="order-detail-item"><label>Payment Method</label><p>${order.paymentMethod || "Not specified"}</p></div>
+            </div>
+            ${reminderMarkup}
+            <div class="order-card-footer">
+              <span class="order-total-display">${order.total || "N/A"}</span>
+              <span class="order-status" style="background:${isPaid ? '#e6f4ea' : '#fef3c7'}; color:${isPaid ? '#16a34a' : '#d97706'};">
+                <i class="fa-solid fa-${isPaid ? 'circle-check' : 'clock'}"></i>
+                ${isPaid ? 'Paid' : 'Payment Pending'}
+              </span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); flex-wrap:wrap;">
+              ${!isPaid ? `<button onclick="payNow(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#d97706; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-credit-card"></i> Pay Now</button>` : ''}
+              <button onclick="reorder(${i})" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:var(--blue-mid); color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-rotate-right"></i> Reorder</button>
+              <button onclick="deleteOrder(${i}, this)" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;"><i class="fa-solid fa-trash"></i> Delete Order</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
 
     window.payNow = function(i) {
       const order = window._orderHistory[i];
@@ -822,7 +1148,17 @@ if (ordersContainer) {
     };
 
     window.reorder = function(i) {
-      window.location.href = "order.html#Place-order";
+      startReorder(window._orderHistory[i]);
+    };
+
+    window.snoozeOrderReminder = function(i) {
+      const order = window._orderHistory[i];
+      const reminder = getSubscriptionReminder(order);
+      if (!reminder || !reminder.isDueSoon) return;
+
+      dismissReorderReminder(order, reminder.nextDueDate);
+      renderOrderHistory(window._orderHistory);
+      showToast("Reminder Snoozed", "This subscription reminder will return on the next cycle.", "info");
     };
 
     window.deleteOrder = async function(i, btn) {
@@ -842,17 +1178,24 @@ if (ordersContainer) {
         const result = await res.json();
         if (!res.ok) throw new Error(result.message || "Failed to delete order");
 
+        window._orderHistory = window._orderHistory.filter(savedOrder => savedOrder._id !== order._id);
+        renderOrderHistory(window._orderHistory);
         showToast("Order Deleted", "Your order was deleted successfully.", "success");
-        setTimeout(() => window.location.reload(), 500);
       } catch (err) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete Order';
         showToast("Delete Failed", err.message || "Could not delete order.", "error");
       }
     };
+
+    fetchCustomerOrders(email)
+      .then(orders => {
+        if (loadingEl) loadingEl.style.display = "none";
+        window._orderHistory = orders;
+        renderOrderHistory(orders);
       })
       .catch(() => {
-        document.getElementById("loading").style.display = "none";
+        if (loadingEl) loadingEl.style.display = "none";
         ordersContainer.innerHTML = `<p style="color:red; text-align:center;">Could not load orders. Make sure the server is running.</p>`;
       });
   }
@@ -868,6 +1211,7 @@ if (summaryDetails) {
   const order = JSON.parse(localStorage.getItem("confirmedOrder"));
 
   if (!order) { window.location.href = "order.html"; }
+  else if (!order._id) { window.location.href = "order-confirmation.html"; }
   else {
     const productNames = { "sachet-water": "Sachet Water - 500ml", "bulk-purchase": "Sachet Water - Bulk Purchase" };
     summaryDetails.innerHTML = `
@@ -998,7 +1342,7 @@ if (staffSignupForm) {
             msgEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Account created! Redirecting...';
             setTimeout(() => {
               const r = loginResult.user.role;
-              window.location.href = r === "admin" ? "admin-dashboard.html" : r === "supervisor" ? "admin-invoices.html" : "waybill.html";
+              window.location.href = r === "admin" ? "admin-dashboard.html" : r === "supervisor" ? "supervisor-invoices.html" : "waybill.html";
             }, 1200);
           } else {
             setTimeout(() => { window.location.href = "staff-login.html"; }, 1200);
@@ -1070,7 +1414,7 @@ if (staffLoginForm) {
         localStorage.setItem("staff-name", staffDisplayName);
         localStorage.setItem("staff-role", result.user.role);
         const _r = result.user.role;
-        window.location.href = _r === "admin" ? "admin-dashboard.html" : _r === "supervisor" ? "admin-invoices.html" : "waybill.html";
+        window.location.href = _r === "admin" ? "admin-dashboard.html" : _r === "supervisor" ? "supervisor-invoices.html" : "waybill.html";
       } else if (res.status === 403) {
         document.getElementById("err-staff-login").textContent = result.message || "Access denied. This staff login ID is not approved.";
         document.getElementById("err-staff-login").classList.add("show");
@@ -1102,7 +1446,7 @@ if (waybillForm) {
   if (!staffToken) { window.location.href = "staff-login.html"; }
   if (staffRole === "supervisor") {
     alert("Supervisors are restricted to the supervisor portal.");
-    window.location.href = "admin-invoices.html";
+    window.location.href = "supervisor-invoices.html";
   }
 
   const welcomeEl = document.getElementById("staff-welcome");
@@ -1356,7 +1700,7 @@ if (confirmationContent) {
     const grandTotal = subtotal - discountAmount + deliveryFee;
     const date = order.createdAt ? new Date(order.createdAt) : new Date();
 
-    if (document.getElementById("invoice-number")) document.getElementById("invoice-number").textContent = `Invoice No: ${order.invoiceNumber || "N/A"}`;
+    if (document.getElementById("invoice-number")) document.getElementById("invoice-number").textContent = `Invoice No: ${order.invoiceNumber || "Pending finalization"}`;
     if (document.getElementById("invoice-date")) document.getElementById("invoice-date").textContent = `Date: ${date.toDateString()}`;
     if (document.getElementById("invoice-name")) document.getElementById("invoice-name").textContent = order.name;
     if (document.getElementById("invoice-address")) document.getElementById("invoice-address").textContent = `${order.streetAddress}, ${order.district}, ${order.region}`;
@@ -1387,8 +1731,57 @@ if (confirmationContent) {
   }
 }
 
-function finalizeOrder() {
-  window.location.href = "payments.html";
+async function finalizeOrder() {
+  const messageEl = document.getElementById("finalize-order-message");
+  const finalizeBtn = document.getElementById("finalize-order-btn");
+  const order = JSON.parse(localStorage.getItem("confirmedOrder") || "null");
+
+  if (messageEl) {
+    messageEl.textContent = "";
+    messageEl.classList.remove("show");
+  }
+
+  if (!order) {
+    window.location.href = "order.html";
+    return;
+  }
+
+  if (order._id) {
+    window.location.href = "payments.html";
+    return;
+  }
+
+  if (finalizeBtn) {
+    finalizeBtn.disabled = true;
+    finalizeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Order...';
+  }
+
+  try {
+    const res = await fetch(`${API}/order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order)
+    });
+    const result = await res.json();
+
+    if (!res.ok || !result.order) {
+      throw new Error(result.message || "Failed to save order. Please try again.");
+    }
+
+    localStorage.setItem("confirmedOrder", JSON.stringify(result.order));
+    showToast("Order Saved", "Your order has been added successfully. Continue with payment.", "success");
+    window.location.href = "payments.html";
+  } catch (err) {
+    if (messageEl) {
+      messageEl.textContent = err.message || "Could not save your order. Please try again.";
+      messageEl.classList.add("show");
+    }
+    showToast("Order Not Saved", err.message || "Could not save your order. Please try again.", "error");
+    if (finalizeBtn) {
+      finalizeBtn.disabled = false;
+      finalizeBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Save Order & Continue to Payment';
+    }
+  }
 }
 
 function isCashOnDeliveryOrder(order) {
