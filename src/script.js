@@ -4,6 +4,28 @@ const APPROVED_STAFF_LOGINS = [
   "manger25@whitewaterghana.com",
   "supervisor1@whitewaterghana.com"
 ];
+const ADMIN_STAFF_LOGINS = [
+  "ceo9@whitewaterghana.com",
+  "manger25@whitewaterghana.com"
+];
+const SUPERVISOR_STAFF_LOGINS = [
+  "supervisor1@whitewaterghana.com"
+];
+
+function getStaffRedirectPage(role, email) {
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+
+  if (normalizedRole === "admin" || ADMIN_STAFF_LOGINS.includes(normalizedEmail)) {
+    return "admin-dashboard.html";
+  }
+
+  if (normalizedRole === "supervisor" || SUPERVISOR_STAFF_LOGINS.includes(normalizedEmail)) {
+    return "supervisor-invoices.html";
+  }
+
+  return "waybill.html";
+}
 
 function fallbackNameFromEmail(email) {
   if (!email) return "";
@@ -61,7 +83,6 @@ function showToast(title, message, type = "success", duration = 4500) {
 }
 
 function updateAccountDropdown(username) {
-  const dropdownBtn = document.querySelector(".dropdown-btn");
   const email = localStorage.getItem("email");
   const displayName = resolveDisplayName(
     username,
@@ -69,9 +90,17 @@ function updateAccountDropdown(username) {
     fallbackNameFromEmail(email),
     email
   );
-  if (!dropdownBtn || !displayName) return;
+  if (!displayName) return;
 
-  dropdownBtn.innerHTML = `<i class="fa-regular fa-circle-user"></i> ${displayName} <i class="fa-solid fa-chevron-down dropdown-arrow"></i>`;
+  const dropdownButtons = document.querySelectorAll(".dropdown-btn");
+  dropdownButtons.forEach((btn) => {
+    if (btn.querySelector("#staff-welcome")) return;
+    const hasCustomerIcon = Boolean(btn.querySelector(".fa-circle-user"));
+    const isCustomerLabel = /my\s*account/i.test(btn.textContent || "");
+    if (!hasCustomerIcon && !isCustomerLabel) return;
+
+    btn.innerHTML = `<i class="fa-regular fa-circle-user"></i> ${displayName} <i class="fa-solid fa-chevron-down dropdown-arrow"></i>`;
+  });
 }
 
 function persistUserSession(email, token, username) {
@@ -120,6 +149,10 @@ function initAuthState() {
   const inPagesFolder = window.location.pathname.includes("/pages/");
   const onSignupPage = window.location.pathname.endsWith("/index.html") || window.location.pathname.endsWith("/") || window.location.pathname === "/";
 
+  if (token) {
+    updateAccountDropdown(username);
+  }
+
   if (token && logoutBtn) {
     document.querySelectorAll('.dropdown-menu a').forEach(link => {
       const href = link.getAttribute("href") || "";
@@ -128,7 +161,6 @@ function initAuthState() {
       }
     });
     logoutBtn.style.display = "flex";
-    updateAccountDropdown(username);
 
     if (onSignupPage) {
       window.location.href = "pages/order.html";
@@ -243,6 +275,10 @@ let refreshReorderReminderSurfaces = null;
 
 function getCustomerPagePath(pageName) {
   return window.location.pathname.includes("/pages/") ? pageName : `pages/${pageName}`;
+}
+
+function getPublicHomePath() {
+  return window.location.pathname.includes("/pages/") ? "../home.html" : "home.html";
 }
 
 function normalizeDateValue(value) {
@@ -659,8 +695,8 @@ const orderForm = document.getElementById("orderForm");
 if (orderForm) {
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Please log in to place an order.");
-    window.location.href = "login.html";
+    alert("Please sign in to place an order.");
+    window.location.href = getPublicHomePath();
   }
 
   const districts = {
@@ -997,10 +1033,10 @@ if (resetForm) {
       const result = await res.json();
       if (res.ok) {
         localStorage.removeItem("reset-email");
-        errEl.textContent = "Password reset successful! Redirecting to login...";
+        errEl.textContent = "Password reset successful! Redirecting to home...";
         errEl.style.color = "green";
         errEl.classList.add("show");
-        setTimeout(() => { window.location.href = isStaffResetFlow ? "staff-login.html" : "login.html"; }, 2000);
+        setTimeout(() => { window.location.href = getPublicHomePath(); }, 2000);
       } else {
         errEl.textContent = result.message || "Reset failed. Please try again.";
         errEl.classList.add("show");
@@ -1068,7 +1104,7 @@ if (ordersContainer) {
   const loadingEl = document.getElementById("loading");
   const noOrdersEl = document.getElementById("no-orders");
 
-  if (!token) { window.location.href = "login.html"; }
+  if (!token) { window.location.href = getPublicHomePath(); }
   else {
     function renderOrderHistory(orders) {
       const safeOrders = Array.isArray(orders) ? orders : [];
@@ -1341,14 +1377,13 @@ if (staffSignupForm) {
             localStorage.setItem("staff-role", loginResult.user.role);
             msgEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Account created! Redirecting...';
             setTimeout(() => {
-              const r = loginResult.user.role;
-              window.location.href = r === "admin" ? "admin-dashboard.html" : r === "supervisor" ? "supervisor-invoices.html" : "waybill.html";
+              window.location.href = getStaffRedirectPage(loginResult.user?.role, email);
             }, 1200);
           } else {
-            setTimeout(() => { window.location.href = "staff-login.html"; }, 1200);
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Account created. Please use Staff Login from the menu when ready.';
           }
         } catch {
-          setTimeout(() => { window.location.href = "staff-login.html"; }, 1200);
+          msgEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Account created. Please use Staff Login from the menu when ready.';
         }
       } else {
         msgEl.style.display = "block";
@@ -1413,8 +1448,7 @@ if (staffLoginForm) {
         localStorage.setItem("staff-token", result.token);
         localStorage.setItem("staff-name", staffDisplayName);
         localStorage.setItem("staff-role", result.user.role);
-        const _r = result.user.role;
-        window.location.href = _r === "admin" ? "admin-dashboard.html" : _r === "supervisor" ? "supervisor-invoices.html" : "waybill.html";
+        window.location.href = getStaffRedirectPage(result.user?.role, email);
       } else if (res.status === 403) {
         document.getElementById("err-staff-login").textContent = result.message || "Access denied. This staff login ID is not approved.";
         document.getElementById("err-staff-login").classList.add("show");
@@ -1443,7 +1477,7 @@ if (waybillForm) {
   const staffName = localStorage.getItem("staff-name");
   const staffRole = localStorage.getItem("staff-role");
 
-  if (!staffToken) { window.location.href = "staff-login.html"; }
+  if (!staffToken) { alert("Please sign in as staff to access this page."); window.location.href = getPublicHomePath(); }
   if (staffRole === "supervisor") {
     alert("Supervisors are restricted to the supervisor portal.");
     window.location.href = "supervisor-invoices.html";
@@ -1847,7 +1881,7 @@ if (ordersList) {
   const staffRole = localStorage.getItem("staff-role");
   const staffName = localStorage.getItem("staff-name");
 
-  if (!staffToken || staffRole !== "admin") { alert("Admin access only!"); window.location.href = "staff-login.html"; }
+  if (!staffToken || staffRole !== "admin") { alert("Admin access only!"); window.location.href = getPublicHomePath(); }
 
   const welcomeEl = document.getElementById("staff-welcome");
   if (welcomeEl) welcomeEl.textContent = staffName;
@@ -2080,7 +2114,7 @@ fetch(`${API}/admin/analytics`)
     const _aoRole = localStorage.getItem("staff-role");
     const _aoName = localStorage.getItem("staff-name");
 
-    if (!_aoToken || _aoRole !== "admin") { alert("Admin access only!"); window.location.href = "staff-login.html"; }
+    if (!_aoToken || _aoRole !== "admin") { alert("Admin access only!"); window.location.href = getPublicHomePath(); }
 
     const _aoWelcome = document.getElementById("staff-welcome");
     if (_aoWelcome) _aoWelcome.textContent = _aoName;
@@ -2248,7 +2282,7 @@ fetch(`${API}/admin/analytics`)
     const _invRole = localStorage.getItem("staff-role");
     const _invName = localStorage.getItem("staff-name");
 
-    if (!_invToken || (_invRole !== "admin" && _invRole !== "supervisor")) { alert("Staff access only!"); window.location.href = "staff-login.html"; }
+    if (!_invToken || (_invRole !== "admin" && _invRole !== "supervisor")) { alert("Staff access only!"); window.location.href = getPublicHomePath(); }
 
     const _invWelcome = document.getElementById("staff-welcome");
     if (_invWelcome) _invWelcome.textContent = _invName;
@@ -2412,7 +2446,7 @@ fetch(`${API}/admin/analytics`)
     const _profitRole = localStorage.getItem("staff-role");
     const _profitName = localStorage.getItem("staff-name");
 
-    if (!_profitToken || _profitRole !== "admin") { alert("Admin access only!"); window.location.href = "staff-login.html"; }
+    if (!_profitToken || _profitRole !== "admin") { alert("Admin access only!"); window.location.href = getPublicHomePath(); }
 
     const _profitWelcome = document.getElementById("staff-welcome");
     if (_profitWelcome) _profitWelcome.textContent = _profitName;
