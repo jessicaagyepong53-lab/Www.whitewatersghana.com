@@ -1,4 +1,93 @@
 const API = "https://white-water-wells.onrender.com";
+
+// ============================================
+// AUTH-AWARE FETCH HELPERS
+// ============================================
+// The backend now authenticates protected routes via a verified JWT
+// ("Authorization: Bearer <token>") instead of trusting client-supplied
+// x-staff-role / x-user-email headers. These helpers centralize that so
+// every call site attaches the right token and handles expired/invalid
+// sessions and network failures the same way.
+
+function authHeaders(token) {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Safely parses a fetch Response as JSON even if the body is empty or not
+// valid JSON (e.g. a proxy/host error page), so callers never crash on
+// `res.json()` itself.
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
+// Clears the customer session and sends the visitor back to login with a
+// toast explaining why, used whenever a customer-authenticated call comes
+// back 401.
+function handleCustomerSessionExpired(message) {
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  localStorage.removeItem("email");
+  sessionStorage.setItem("customer-session-expired", message || "Your session expired. Please sign in again.");
+  window.location.href = getCustomerPagePath("login.html");
+}
+
+// Same idea for staff/admin/supervisor sessions.
+function handleStaffSessionExpired(message) {
+  localStorage.removeItem("staff-token");
+  localStorage.removeItem("staff-name");
+  localStorage.removeItem("staff-role");
+  sessionStorage.setItem("staff-session-expired", message || "Your staff session expired. Please sign in again.");
+  window.location.href = "staff-login.html";
+}
+
+// Wraps fetch with: auth headers, a timeout, safe JSON parsing, and
+// consistent handling of 401 (expired/invalid token). `sessionType` is
+// "customer", "staff", or null (no auth required).
+async function apiFetch(path, { method = "GET", token, body, sessionType, timeoutMs = 10000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token)
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === "AbortError") {
+      throw new Error("The server took too long to respond. Please try again.");
+    }
+    throw new Error("Could not connect to the server. Please check your connection and try again.");
+  }
+  clearTimeout(timer);
+
+  const data = await safeJson(res);
+
+  if (res.status === 401) {
+    if (sessionType === "staff") handleStaffSessionExpired(data.message);
+    else if (sessionType === "customer") handleCustomerSessionExpired(data.message);
+  }
+
+  if (!res.ok) {
+    const err = new Error(data.message || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
 const APPROVED_STAFF_LOGINS = [
   "ceo9@whitewaterghana.com",
   "manager25@whitewaterghana.com",
@@ -506,11 +595,11 @@ function renderReminderBanner(container, reminders) {
 }
 
 async function fetchCustomerOrders(email) {
-  const response = await fetch(`${API}/orders/${email}`);
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to load orders.");
-  }
+  const token = localStorage.getItem("token");
+  const data = await apiFetch(`/orders/${encodeURIComponent(email)}?limit=200`, {
+    token,
+    sessionType: "customer"
+  });
   return data.orders || [];
 }
 
@@ -625,6 +714,11 @@ if (loginForm) {
       "success",
       6000
     );
+  }
+  if (sessionStorage.getItem("customer-session-expired")) {
+    const expiredMsg = sessionStorage.getItem("customer-session-expired");
+    sessionStorage.removeItem("customer-session-expired");
+    showToast("Session Expired", expiredMsg, "info", 6000);
   }
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -836,21 +930,41 @@ if (orderForm) {
     const district = document.getElementById("district").value;
     const streetAddress = document.getElementById("street-address").value.trim();
     const product = document.getElementById("product").value;
-    const quantity = document.getElementById("quantity").value;
+    const quantityRaw = document.getElementById("quantity").value;
+    const quantity = Number(quantityRaw);
     const orderType = document.getElementById("order-type").value;
     const deliveryDateVal = document.getElementById("delivery-date").value;
     const timeSlot = document.getElementById("time-slot").value;
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const MAX_QUANTITY = 100000;
+
     let hasError = false;
     if (!fullName) { document.getElementById("full-name").classList.add("input-error"); document.getElementById("err-name").classList.add("show"); hasError = true; }
     if (!phone || !/^0[2345]\d{8}$/.test(phone)) { document.getElementById("telp").classList.add("input-error"); document.getElementById("err-phone").classList.add("show"); hasError = true; }
-    if (!email) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").classList.add("show"); hasError = true; }
+    if (!email || !emailRegex.test(email)) { document.getElementById("email").classList.add("input-error"); document.getElementById("err-email").textContent = "Please enter a valid email address"; document.getElementById("err-email").classList.add("show"); hasError = true; }
     if (!region) { document.getElementById("region").classList.add("input-error"); document.getElementById("err-region").classList.add("show"); hasError = true; }
     if (!district) { document.getElementById("district").classList.add("input-error"); document.getElementById("err-district").classList.add("show"); hasError = true; }
     if (!streetAddress) { document.getElementById("street-address").classList.add("input-error"); document.getElementById("err-street").classList.add("show"); hasError = true; }
     if (!product) { document.getElementById("product").classList.add("input-error"); document.getElementById("err-product").classList.add("show"); hasError = true; }
-    if (!quantity || quantity < 1) { document.getElementById("quantity").classList.add("input-error"); document.getElementById("err-quantity").classList.add("show"); hasError = true; }
-    if (!deliveryDateVal) { document.getElementById("delivery-date").classList.add("input-error"); document.getElementById("err-date").classList.add("show"); hasError = true; }
+    if (!quantityRaw || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+      document.getElementById("quantity").classList.add("input-error");
+      document.getElementById("err-quantity").textContent = `Please enter a whole number of bags (1–${MAX_QUANTITY.toLocaleString()})`;
+      document.getElementById("err-quantity").classList.add("show");
+      hasError = true;
+    }
+    if (!deliveryDateVal) {
+      document.getElementById("delivery-date").classList.add("input-error"); document.getElementById("err-date").classList.add("show"); hasError = true;
+    } else {
+      const chosenDate = normalizeDateValue(deliveryDateVal);
+      const earliestAllowed = normalizeDateValue(document.getElementById("delivery-date").min) || normalizeDateValue(new Date());
+      if (!chosenDate || (earliestAllowed && chosenDate < earliestAllowed)) {
+        document.getElementById("delivery-date").classList.add("input-error");
+        document.getElementById("err-date").textContent = "Please choose a valid delivery date (today or later)";
+        document.getElementById("err-date").classList.add("show");
+        hasError = true;
+      }
+    }
     if (!timeSlot) { document.getElementById("time-slot").classList.add("input-error"); document.getElementById("err-timeslot").classList.add("show"); hasError = true; }
     if (hasError) return;
 
@@ -1206,13 +1320,11 @@ if (ordersContainer) {
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
 
       try {
-        const res = await fetch(`${API}/orders/${order._id}`, {
+        await apiFetch(`/orders/${order._id}`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json", "x-user-email": email },
-          body: JSON.stringify({ email })
+          token,
+          sessionType: "customer"
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Failed to delete order");
 
         window._orderHistory = window._orderHistory.filter(savedOrder => savedOrder._id !== order._id);
         renderOrderHistory(window._orderHistory);
@@ -1274,32 +1386,53 @@ window.selectPayment = function(method) {
   if (errEl) { errEl.textContent = ""; errEl.classList.remove("show"); }
 };
 
-window.confirmPayment = function() {
+window.confirmPayment = async function() {
   const errEl = document.getElementById("err-payment");
+  if (errEl) { errEl.textContent = ""; errEl.classList.remove("show"); }
+
   if (!selectedPaymentMethod) {
     if (errEl) { errEl.textContent = "Please select a payment method to continue."; errEl.classList.add("show"); }
     return;
   }
   const methodNames = { mtn: "MTN Mobile Money", vodafone: "Vodafone Cash", airteltigo: "AirtelTigo Money", card: "Card Payment", cash: "Cash on Delivery" };
   const order = JSON.parse(localStorage.getItem("confirmedOrder")) || {};
-  order.paymentMethod = methodNames[selectedPaymentMethod] || selectedPaymentMethod;
-  localStorage.setItem("confirmedOrder", JSON.stringify(order));
+  const paymentMethod = methodNames[selectedPaymentMethod] || selectedPaymentMethod;
 
-  if (order._id) {
-    fetch(`${API}/order/${order._id}/payment`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentMethod: order.paymentMethod })
-    }).catch(() => {});
+  const btn = document.querySelector('.submit-btn[onclick="confirmPayment()"]');
+  const originalBtnHtml = btn ? btn.innerHTML : "";
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...'; }
+
+  if (!order._id) {
+    if (errEl) { errEl.textContent = "We couldn't find your order. Please go back and save your order first."; errEl.classList.add("show"); }
+    if (btn) { btn.disabled = false; btn.innerHTML = originalBtnHtml; }
+    return;
   }
 
-  const btn = document.querySelector(".submit-btn[onclick=\"confirmPayment()\"]");
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Payment Method Confirmed!'; btn.style.background = "#16a34a"; }
+  try {
+    const result = await apiFetch(`/order/${order._id}/payment`, {
+      method: "PATCH",
+      body: { paymentMethod, transactionId: order.transactionId }
+    });
 
-  setTimeout(() => {
-    localStorage.removeItem("confirmedOrder");
-    window.location.href = "order-history.html";
-  }, 1500);
+    order.paymentMethod = paymentMethod;
+    order.paymentStatus = result.order?.paymentStatus || order.paymentStatus;
+    localStorage.setItem("confirmedOrder", JSON.stringify(order));
+
+    if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Payment Method Confirmed!'; btn.style.background = "#16a34a"; }
+    showToast("Payment Confirmed", "Your order has been updated successfully.", "success");
+
+    setTimeout(() => {
+      localStorage.removeItem("confirmedOrder");
+      window.location.href = "order-history.html";
+    }, 1500);
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message || "Could not confirm your payment method. Please try again.";
+      errEl.classList.add("show");
+    }
+    showToast("Payment Not Confirmed", err.message || "Could not reach the server. Please try again.", "error");
+    if (btn) { btn.disabled = false; btn.innerHTML = originalBtnHtml; }
+  }
 };
 
 
@@ -1411,6 +1544,11 @@ if (staffSignupForm) {
 const staffLoginForm = document.getElementById("staffLoginForm");
 
 if (staffLoginForm) {
+  if (sessionStorage.getItem("staff-session-expired")) {
+    const expiredMsg = sessionStorage.getItem("staff-session-expired");
+    sessionStorage.removeItem("staff-session-expired");
+    showToast("Session Expired", expiredMsg, "info", 6000);
+  }
   staffLoginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -1515,8 +1653,7 @@ if (waybillForm) {
   }
 
   function refreshNextWaybillNumber() {
-    fetch(`${API}/waybills/count`)
-      .then(res => res.json())
+    apiFetch(`/waybills/count`, { token: staffToken, sessionType: "staff" })
       .then(data => {
         waybillNum = data.nextNumber || "Unavailable";
         document.getElementById("waybill-number").textContent = waybillNum;
@@ -1602,8 +1739,7 @@ if (waybillForm) {
     previousWaybillsLoading.style.display = "block";
     previousWaybillsList.innerHTML = "";
 
-    fetch(`${API}/waybills`)
-      .then(res => res.json())
+    apiFetch(`/waybills?limit=200`, { token: staffToken, sessionType: "staff" })
       .then(data => {
         previousWaybillsLoading.style.display = "none";
 
@@ -1678,29 +1814,23 @@ if (waybillForm) {
     submitBtn.innerHTML = "Submitting...";
 
     try {
-      const res = await fetch(`${API}/waybill`, {
+      await apiFetch(`/waybill`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${staffToken}` },
-        body: JSON.stringify({ to, driverName, address, carNumber, date, items, quantity, description, remarks, despatchedBy, receivedBy, driverSignature, waybillNumber: waybillNum, submittedBy: staffName, amount })
+        token: staffToken,
+        sessionType: "staff",
+        body: { to, driverName, address, carNumber, date, items, quantity, description, remarks, despatchedBy, receivedBy, driverSignature, waybillNumber: waybillNum, submittedBy: staffName, amount }
       });
 
-      const result = await res.json();
-
-      if (res.ok) {
-        showToast("Waybill Submitted!", "Invoice sent to the company email successfully.", "success");
-        document.getElementById("waybill-success").style.display = "block";
-        waybillForm.reset();
-        document.getElementById("waybill-date").value = new Date().toISOString().split("T")[0];
-        [1,2,3,4,5].forEach(i => { const el = document.getElementById(`remarks-${i}`); if (el) el.value = "Sachet water"; });
-        refreshNextWaybillNumber();
-        loadPreviousWaybills();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        document.getElementById("err-waybill").textContent = result.message || "Failed to submit. Please try again.";
-        document.getElementById("err-waybill").classList.add("show");
-      }
+      showToast("Waybill Submitted!", "Invoice sent to the company email successfully.", "success");
+      document.getElementById("waybill-success").style.display = "block";
+      waybillForm.reset();
+      document.getElementById("waybill-date").value = new Date().toISOString().split("T")[0];
+      [1,2,3,4,5].forEach(i => { const el = document.getElementById(`remarks-${i}`); if (el) el.value = "Sachet water"; });
+      refreshNextWaybillNumber();
+      loadPreviousWaybills();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      document.getElementById("err-waybill").textContent = "Could not connect to server. Make sure the server is running.";
+      document.getElementById("err-waybill").textContent = err.message || "Could not connect to server. Make sure the server is running.";
       document.getElementById("err-waybill").classList.add("show");
     } finally {
       submitBtn.disabled = false;
@@ -1791,14 +1921,13 @@ async function finalizeOrder() {
   }
 
   try {
-    const res = await fetch(`${API}/order`, {
+    const result = await apiFetch(`/order`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order)
+      token: localStorage.getItem("token"),
+      body: order
     });
-    const result = await res.json();
 
-    if (!res.ok || !result.order) {
+    if (!result.order) {
       throw new Error(result.message || "Failed to save order. Please try again.");
     }
 
@@ -1956,36 +2085,28 @@ if (ordersList) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
     try {
-      const res = await fetch(`${API}/admin/orders/${orderId}/paid`, {
+      await apiFetch(`/admin/orders/${orderId}/paid`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" }
+        token: staffToken,
+        sessionType: "staff"
       });
-      const result = await res.json();
-      if (res.ok) {
-        const card = document.getElementById(`card-${orderId}`);
-        card.classList.remove("status-pending");
-        card.classList.add("status-paid");
-        btn.parentElement.innerHTML = `<p style="color:#16a34a; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Cash Received</p>`;
-        const badge = card.querySelector(".status-badge");
-        if (badge) { badge.className = "status-badge paid"; badge.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Paid on Delivery'; }
-        const order = allOrders.find(o => o._id === orderId);
-        if (order) order.paymentStatus = "paid";
-      } else {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Confirm Cash Received';
-        alert(result.message || "Failed to update order.");
-      }
+
+      const card = document.getElementById(`card-${orderId}`);
+      card.classList.remove("status-pending");
+      card.classList.add("status-paid");
+      btn.parentElement.innerHTML = `<p style="color:#16a34a; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Cash Received</p>`;
+      const badge = card.querySelector(".status-badge");
+      if (badge) { badge.className = "status-badge paid"; badge.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Paid on Delivery'; }
+      const order = allOrders.find(o => o._id === orderId);
+      if (order) order.paymentStatus = "paid";
     } catch (err) {
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Confirm Cash Received';
-      alert("Could not connect to server.");
+      showToast("Update Failed", err.message || "Could not connect to server.", "error");
     }
   };
 
-  const _dashController = new AbortController();
-  setTimeout(() => _dashController.abort(), 8000);
-  fetch(`${API}/admin/orders`, { signal: _dashController.signal })
-    .then(res => res.json())
+  apiFetch(`/admin/orders?limit=500`, { token: staffToken, sessionType: "staff" })
     .then(data => {
       document.getElementById("loading-orders").style.display = "none";
       allOrders = data.orders || [];
@@ -1995,9 +2116,9 @@ if (ordersList) {
       document.getElementById("stat-cod").textContent = allOrders.filter(o => isCashOnDeliveryOrder(o)).length;
       renderOrders(allOrders);
     })
-    .catch(() => {
+    .catch((err) => {
       document.getElementById("loading-orders").style.display = "none";
-      ordersList.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-box-open" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Orders Yet</h3><p>No orders found or the server could not be reached.</p></div>`;
+      ordersList.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-box-open" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Orders Yet</h3><p>${err.message || "No orders found or the server could not be reached."}</p></div>`;
     });
 }
 
@@ -2049,64 +2170,79 @@ function showPeriod(period) {
 }
 
 async function fetchCustomRange() {
-  const from = document.getElementById("custom-from").value;
-  const to = document.getElementById("custom-to").value;
-  if (!from || !to) { alert("Please select both dates"); return; }
+  const fromInput = document.getElementById("custom-from").value;
+  const toInput = document.getElementById("custom-to").value;
+  if (!fromInput || !toInput) {
+    showToast("Missing Dates", "Please select both a start and end date.", "error");
+    return;
+  }
 
-  const [ordersRes, waybillsRes] = await Promise.all([
-    fetch(`${API}/admin/analytics/custom?from=${from}&to=${to}`),
-    fetch(`${API}/admin/analytics/custom-waybills?from=${from}&to=${to}`)
-  ]);
+  const staffToken = localStorage.getItem("staff-token");
+  const searchBtn = document.querySelector('button[onclick="fetchCustomRange()"]');
+  if (searchBtn) { searchBtn.disabled = true; searchBtn.dataset.originalHtml = searchBtn.innerHTML; searchBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching...'; }
 
-  const ordersData = await ordersRes.json();
-  const waybillsData = await waybillsRes.json();
+  try {
+    const [ordersData, waybillsData] = await Promise.all([
+      apiFetch(`/admin/analytics/custom?from=${fromInput}&to=${toInput}`, { token: staffToken, sessionType: "staff" }),
+      apiFetch(`/admin/analytics/custom-waybills?from=${fromInput}&to=${toInput}`, { token: staffToken, sessionType: "staff" })
+    ]);
 
-  document.getElementById("custom-result").style.display = "grid";
-  document.getElementById("custom-online-total").textContent = `GH₵${ordersData.total.toFixed(2)}`;
-  document.getElementById("custom-online-count").textContent = `${ordersData.count} orders`;
-  document.getElementById("custom-waybill-total").textContent = `GH₵${waybillsData.total.toFixed(2)}`;
-  document.getElementById("custom-waybill-count").textContent = `${waybillsData.count} waybills`;
-  document.getElementById("custom-grand-total").textContent = `GH₵${(ordersData.total + waybillsData.total).toFixed(2)}`;
+    document.getElementById("custom-result").style.display = "grid";
+    document.getElementById("custom-online-total").textContent = `GH₵${Number(ordersData.total || 0).toFixed(2)}`;
+    document.getElementById("custom-online-count").textContent = `${ordersData.count || 0} orders`;
+    document.getElementById("custom-waybill-total").textContent = `GH₵${Number(waybillsData.total || 0).toFixed(2)}`;
+    document.getElementById("custom-waybill-count").textContent = `${waybillsData.count || 0} waybills`;
+    document.getElementById("custom-grand-total").textContent = `GH₵${(Number(ordersData.total || 0) + Number(waybillsData.total || 0)).toFixed(2)}`;
+  } catch (err) {
+    showToast("Custom Range Failed", err.message || "Could not load data for that range.", "error");
+  } finally {
+    if (searchBtn) { searchBtn.disabled = false; searchBtn.innerHTML = searchBtn.dataset.originalHtml; }
+  }
 }
 
 window.fetchCustomRange = fetchCustomRange;
 window.showPeriod = showPeriod;
 
-fetch(`${API}/admin/analytics`)
-  .then(res => res.json())
-  .then(data => {
-    analyticsData = data;
-    document.getElementById("analytics-loading").style.display = "none";
-    document.getElementById("analytics-content").style.display = "block";
-    showPeriod('today');
+// Only runs on pages that actually render the analytics dashboard
+// (admin-dashboard.html) — previously this fired unconditionally on every
+// page in the site, hitting a protected endpoint from anonymous public
+// pages and relying on the resulting error to fall through into a
+// mis-nested .catch() block below (see the un-nesting fix further down).
+const analyticsLoadingEl = document.getElementById("analytics-loading");
+if (analyticsLoadingEl) {
+  const analyticsStaffToken = localStorage.getItem("staff-token");
+  apiFetch(`/admin/analytics`, { token: analyticsStaffToken, sessionType: "staff" })
+    .then(data => {
+      analyticsData = data;
+      analyticsLoadingEl.style.display = "none";
+      document.getElementById("analytics-content").style.display = "block";
+      showPeriod('today');
 
-    const ctx = document.getElementById("revenueChart").getContext("2d");
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.monthlyData.map(m => m.month),
-        datasets: [
-          { label: 'Online Orders', data: data.monthlyData.map(m => m.orders), backgroundColor: 'rgba(26, 111, 196, 0.7)', borderColor: '#1a6fc4', borderWidth: 1, borderRadius: 4 },
-          { label: 'Waybills', data: data.monthlyData.map(m => m.waybills), backgroundColor: 'rgba(245, 158, 11, 0.7)', borderColor: '#f59e0b', borderWidth: 1, borderRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `GH₵${ctx.raw.toFixed(2)}` } } },
-        scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { callback: val => `GH₵${val}` } } }
-      }
+      const ctx = document.getElementById("revenueChart").getContext("2d");
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.monthlyData.map(m => m.month),
+          datasets: [
+            { label: 'Online Orders', data: data.monthlyData.map(m => m.orders), backgroundColor: 'rgba(26, 111, 196, 0.7)', borderColor: '#1a6fc4', borderWidth: 1, borderRadius: 4 },
+            { label: 'Waybills', data: data.monthlyData.map(m => m.waybills), backgroundColor: 'rgba(245, 158, 11, 0.7)', borderColor: '#f59e0b', borderWidth: 1, borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `GH₵${ctx.raw.toFixed(2)}` } } },
+          scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { callback: val => `GH₵${val}` } } }
+        }
+      });
+    })
+    .catch((err) => {
+      analyticsLoadingEl.innerHTML = `<p style="color:red;">${err.message || "Could not load analytics."}</p>`;
     });
-  })
-  .catch(() => {
-    const analyticsLoadingEl = document.getElementById("analytics-loading");
-    if (analyticsLoadingEl) {
-      analyticsLoadingEl.innerHTML = `<p style="color:red;">Could not load analytics.</p>`;
-    }
+}
 
-
-  // ============================================
-  // ADMIN ORDERS PAGE
-  // ============================================
+// ============================================
+// ADMIN ORDERS PAGE
+// ============================================
   const adminOrdersList = document.getElementById("admin-orders-list");
 
   if (adminOrdersList) {
@@ -2208,29 +2344,24 @@ fetch(`${API}/admin/analytics`)
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
       try {
-        const res = await fetch(`${API}/admin/orders/${orderId}/paid`, {
+        await apiFetch(`/admin/orders/${orderId}/paid`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", "x-staff-role": _aoRole }
+          token: _aoToken,
+          sessionType: "staff"
         });
-        const result = await res.json();
-        if (res.ok) {
-          const card = document.getElementById(`ao-card-${orderId}`);
-          card.classList.remove("status-pending");
-          card.classList.add("status-paid");
-          btn.parentElement.innerHTML = `<p style="color:#16a34a; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Cash Received</p>`;
-          const badge = card.querySelector(".status-badge");
-          if (badge) { badge.className = "status-badge paid"; badge.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Paid on Delivery'; }
-          const order = allAoOrders.find(o => o._id === orderId);
-          if (order) order.paymentStatus = "paid";
-        } else {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Confirm Cash Received';
-          alert(result.message || "Failed to update order.");
-        }
+
+        const card = document.getElementById(`ao-card-${orderId}`);
+        card.classList.remove("status-pending");
+        card.classList.add("status-paid");
+        btn.parentElement.innerHTML = `<p style="color:#16a34a; font-size:13px; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Cash Received</p>`;
+        const badge = card.querySelector(".status-badge");
+        if (badge) { badge.className = "status-badge paid"; badge.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Paid on Delivery'; }
+        const order = allAoOrders.find(o => o._id === orderId);
+        if (order) order.paymentStatus = "paid";
       } catch (err) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-money-bill-wave"></i> Confirm Cash Received';
-        alert("Could not connect to server.");
+        showToast("Update Failed", err.message || "Could not connect to server.", "error");
       }
     };
 
@@ -2239,12 +2370,11 @@ fetch(`${API}/admin/analytics`)
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
       try {
-        const res = await fetch(`${API}/admin/orders/${orderId}`, {
+        await apiFetch(`/admin/orders/${orderId}`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json", "x-staff-role": _aoRole }
+          token: _aoToken,
+          sessionType: "staff"
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Failed to delete order");
 
         allAoOrders = allAoOrders.filter(o => o._id !== orderId);
         const card = document.getElementById(`ao-card-${orderId}`);
@@ -2257,17 +2387,14 @@ fetch(`${API}/admin/analytics`)
       }
     };
 
-    const _aoCtrl = new AbortController();
-    setTimeout(() => _aoCtrl.abort(), 8000);
-    fetch(`${API}/admin/orders`, { signal: _aoCtrl.signal, headers: { "x-staff-role": _aoRole } })
-      .then(res => res.json())
+    apiFetch(`/admin/orders?limit=500`, { token: _aoToken, sessionType: "staff" })
       .then(data => {
         allAoOrders = data.orders || [];
         window.filterAdminOrders(getAdminOrdersView());
       })
-      .catch(() => {
+      .catch((err) => {
         document.getElementById("ao-loading").style.display = "none";
-        adminOrdersList.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-box-open" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Orders Found</h3><p>No orders yet or server could not be reached.</p></div>`;
+        adminOrdersList.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-box-open" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Orders Found</h3><p>${err.message || "No orders yet or server could not be reached."}</p></div>`;
       });
   }
 
@@ -2297,8 +2424,7 @@ fetch(`${API}/admin/analytics`)
     // Load next invoice number
     let _invFormNumber = "Loading...";
     function _refreshInvoiceFormNumber() {
-      fetch(`${API}/waybills/count`)
-        .then(r => r.json())
+      apiFetch(`/waybills/count`, { token: _invToken, sessionType: "staff" })
         .then(d => {
           _invFormNumber = d.nextNumber || "Unavailable";
           const el = document.getElementById("inv-form-number");
@@ -2351,19 +2477,19 @@ fetch(`${API}/admin/analytics`)
         submitBtn.innerHTML = "Submitting...";
 
         try {
-          const res = await fetch(`${API}/waybill`, {
+          await apiFetch(`/waybill`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${_invToken}` },
-            body: JSON.stringify({
+            token: _invToken,
+            sessionType: "staff",
+            body: {
               to, driverName, address, carNumber, date, items,
               quantity: items[0].quantity, description: items[0].description, remarks: items[0].remarks,
               despatchedBy, receivedBy, driverSignature,
               waybillNumber: _invFormNumber, submittedBy: _invName, amount
-            })
+            }
           });
-          const result = await res.json();
 
-          if (res.ok) {
+          {
             showToast("Invoice Submitted!", "Invoice sent to the company email successfully.", "success");
             document.getElementById("inv-success").style.display = "block";
             invoiceForm.reset();
@@ -2373,17 +2499,13 @@ fetch(`${API}/admin/analytics`)
             // Reload previous invoices list
             document.getElementById("inv-loading").style.display = "block";
             invoicesContainer.innerHTML = "";
-            fetch(`${API}/waybills`)
-              .then(r => r.json())
+            apiFetch(`/waybills?limit=200`, { token: _invToken, sessionType: "staff" })
               .then(d => { allInvoices = d.waybills || []; renderInvoices(allInvoices); })
               .catch(() => {});
             window.scrollTo({ top: 0, behavior: "smooth" });
-          } else {
-            document.getElementById("inv-err-submit").textContent = result.message || "Failed to submit. Please try again.";
-            document.getElementById("inv-err-submit").classList.add("show");
           }
-        } catch (err) {
-          document.getElementById("inv-err-submit").textContent = "Something went wrong. Please try again.";
+        } catch (submitErr) {
+          document.getElementById("inv-err-submit").textContent = submitErr.message || "Failed to submit. Please try again.";
           document.getElementById("inv-err-submit").classList.add("show");
         } finally {
           submitBtn.disabled = false;
@@ -2500,12 +2622,11 @@ fetch(`${API}/admin/analytics`)
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
       try {
-        const res = await fetch(`${API}/admin/waybills/${waybillId}`, {
+        await apiFetch(`/admin/waybills/${waybillId}`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json", "x-staff-role": _invRole }
+          token: _invToken,
+          sessionType: "staff"
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Failed to delete invoice document");
 
         allInvoices = allInvoices.filter(inv => inv._id !== waybillId);
         renderInvoices(allInvoices);
@@ -2517,10 +2638,7 @@ fetch(`${API}/admin/analytics`)
       }
     };
 
-    const _invCtrl = new AbortController();
-    setTimeout(() => _invCtrl.abort(), 8000);
-    fetch(`${API}/waybills`, { signal: _invCtrl.signal })
-      .then(res => res.json())
+    apiFetch(`/waybills?limit=200`, { token: _invToken, sessionType: "staff" })
       .then(data => {
         allInvoices = data.waybills || [];
         renderInvoices(allInvoices);
@@ -2534,9 +2652,9 @@ fetch(`${API}/admin/analytics`)
           );
         }
       })
-      .catch(() => {
+      .catch((err) => {
         document.getElementById("inv-loading").style.display = "none";
-        invoicesContainer.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-file-invoice" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Invoices Found</h3><p>No supervisor invoices were found or the server could not be reached.</p></div>`;
+        invoicesContainer.innerHTML = `<div style="text-align:center; padding:60px; color:var(--text-muted);"><i class="fa-solid fa-file-invoice" style="font-size:48px; margin-bottom:16px; display:block;"></i><h3 style="margin-bottom:8px;">No Invoices Found</h3><p>${err.message || "No supervisor invoices were found or the server could not be reached."}</p></div>`;
       });
   }
 
@@ -2605,8 +2723,7 @@ fetch(`${API}/admin/analytics`)
       renderProfitPeriod(period);
     };
 
-    fetch(`${API}/admin/profits`)
-      .then(res => res.json())
+    apiFetch(`/admin/profits`, { token: _profitToken, sessionType: "staff" })
       .then(data => {
         profitsData = data;
         document.getElementById("profits-loading").style.display = "none";
@@ -2647,8 +2764,7 @@ fetch(`${API}/admin/analytics`)
           });
         }
       })
-      .catch(() => {
-        document.getElementById("profits-loading").innerHTML = `<p style="color:red;">Could not load profit analytics.</p>`;
+      .catch((err) => {
+        document.getElementById("profits-loading").innerHTML = `<p style="color:red;">${err.message || "Could not load profit analytics."}</p>`;
       });
   }
-  });

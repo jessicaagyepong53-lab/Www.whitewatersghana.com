@@ -607,14 +607,61 @@ app.post("/reset-password", asyncHandler(async (req, res) => {
 
 // Placing an order stays open to guests, but if the request carries a valid
 // customer token we tag the order with that account automatically.
+const VALID_PRODUCTS = ["sachet-water", "bulk-purchase"];
+const VALID_ORDER_TYPES = ["one-time", "weekly", "biweekly", "monthly"];
+const MAX_ORDER_QUANTITY = 100000;
+
 app.post("/order", attachUserIfPresent, asyncHandler(async (req, res) => {
   const required = ["name", "phone", "email", "region", "district", "streetAddress", "product", "quantity", "delivery", "timeSlot"];
   const missing = required.filter((field) => !req.body[field]);
   if (missing.length) throw new AppError(`Missing required field(s): ${missing.join(", ")}`, 400);
 
+  const { email, product, quantity, orderType, delivery } = req.body;
+
+  if (!EMAIL_REGEX.test(email)) {
+    throw new AppError("Please provide a valid email address", 400);
+  }
+
+  if (!VALID_PRODUCTS.includes(product)) {
+    throw new AppError(`Product must be one of: ${VALID_PRODUCTS.join(", ")}`, 400);
+  }
+
+  const qty = Number(quantity);
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_ORDER_QUANTITY) {
+    throw new AppError(`Quantity must be a whole number between 1 and ${MAX_ORDER_QUANTITY}`, 400);
+  }
+
+  if (orderType && !VALID_ORDER_TYPES.includes(orderType)) {
+    throw new AppError(`Order type must be one of: ${VALID_ORDER_TYPES.join(", ")}`, 400);
+  }
+
+  const deliveryDate = new Date(delivery);
+  if (Number.isNaN(deliveryDate.getTime())) {
+    throw new AppError("Please provide a valid delivery date", 400);
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (deliveryDate < today) {
+    throw new AppError("Delivery date cannot be in the past", 400);
+  }
+
   const invoiceNumber = await generateWwwNumber("invoice");
+
+  // Compute the total server-side rather than trusting the client-supplied
+  // value, using the same pricing rules as the PDF invoice generator, so a
+  // tampered request can't set an arbitrary order total.
+  const unitPrice = 7;
+  const discountMap = { weekly: 10, biweekly: 15, monthly: 20, "one-time": 0 };
+  const subtotal = unitPrice * qty;
+  const discountPct = discountMap[orderType] || 0;
+  const discountAmount = (subtotal * discountPct) / 100;
+  const deliveryFee = 100;
+  const grandTotal = subtotal - discountAmount + deliveryFee;
+
   const order = new Order({
     ...req.body,
+    quantity: qty,
+    total: `GH₵${grandTotal.toFixed(2)}`,
     invoiceNumber,
     status: "received",
     statusHistory: [{ status: "received", note: "Order placed by customer" }]
@@ -765,6 +812,19 @@ app.post("/waybill", ...requireStaff, asyncHandler(async (req, res) => {
   const required = ["to", "driverName", "address", "carNumber", "date", "despatchedBy"];
   const missing = required.filter((field) => !req.body[field]);
   if (missing.length) throw new AppError(`Missing required field(s): ${missing.join(", ")}`, 400);
+
+  const waybillDate = new Date(req.body.date);
+  if (Number.isNaN(waybillDate.getTime())) {
+    throw new AppError("Please provide a valid date", 400);
+  }
+
+  if (req.body.amount !== undefined && req.body.amount !== null && req.body.amount !== "") {
+    const amount = Number(req.body.amount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new AppError("Amount must be a valid non-negative number", 400);
+    }
+    req.body.amount = amount;
+  }
 
   req.body.waybillNumber = await generateWwwNumber("waybill");
   req.body.emailSent = false;
@@ -1017,6 +1077,25 @@ app.get("/admin/analytics", ...requireAdmin, asyncHandler(async (req, res) => {
 app.get("/admin/profits", ...requireAdmin, asyncHandler(async (req, res) => {
   const payload = await buildAnalyticsPayload();
   res.json(payload);
+}));
+
+app.get("/admin/analytics/custom", ...requireAdmin, asyncHandler(async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) throw new AppError("Both 'from' and 'to' query params are required", 400);
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new AppError("Invalid 'from' or 'to' date", 400);
+  }
+  toDate.setHours(23, 59, 59, 999);
+
+  const paidOrders = await Order.find({
+    createdAt: { $gte: fromDate, $lte: toDate },
+    paymentStatus: "paid"
+  });
+  const total = paidOrders.reduce((sum, o) => sum + parseMoney(o.total), 0);
+  res.json({ total, count: paidOrders.length });
 }));
 
 app.get("/admin/analytics/custom-waybills", ...requireAdmin, asyncHandler(async (req, res) => {
