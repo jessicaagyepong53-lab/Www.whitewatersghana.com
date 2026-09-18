@@ -67,6 +67,82 @@ class AppError extends Error {
 }
 
 // ============================================
+// FACTORY SYSTEM INTEGRATION (push orders + status updates)
+// ────────────────────────────────────────────
+// Pushes a copy of each order (and its status/payment changes) to the
+// factory management system, so it shows up in that system's Online
+// Orders tab and dashboard KPI. This site and the factory system are
+// two completely separate apps with separate databases — this is a
+// one-way, fire-and-forget push, not a shared database. If the factory
+// server is unreachable or FACTORY_API_BASE/FACTORY_API_KEY aren't set,
+// these calls fail silently (logged, not thrown) so a customer's
+// checkout here is never affected by the factory system being down.
+//
+// Requires Node 18+ for global fetch(). Set these two env vars to
+// enable the integration:
+//   FACTORY_API_BASE=https://whitewaterghana.onrender.com
+//   FACTORY_API_KEY=<same shared secret as EXTERNAL_STORE_API_KEY there>
+// ============================================
+const FACTORY_API_BASE = String(process.env.FACTORY_API_BASE || "").replace(/\/+$/, "");
+const FACTORY_API_KEY = process.env.FACTORY_API_KEY || "";
+const FACTORY_PUSH_ENABLED = !!(FACTORY_API_BASE && FACTORY_API_KEY);
+
+if (!FACTORY_PUSH_ENABLED) {
+  console.warn("Factory system push is disabled (FACTORY_API_BASE / FACTORY_API_KEY not set).");
+}
+
+// Fires the moment an order is created — covers both online-payment and
+// Cash-on-Delivery orders, since COD orders never touch /order/:id/payment.
+async function pushOrderToFactory(order, totals) {
+  if (!FACTORY_PUSH_ENABLED) return;
+  try {
+    const productName = order.product === "bulk-purchase" ? "Sachet Water - Bulk purchase" : "Sachet Water - 500ml";
+    const res = await fetch(`${FACTORY_API_BASE}/api/store/external-orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": FACTORY_API_KEY },
+      body: JSON.stringify({
+        externalOrderCode: order.invoiceNumber,
+        customerName: order.name,
+        customerEmail: order.email,
+        customerPhone: order.phone,
+        deliveryAddress: order.streetAddress,
+        deliveryCity: order.district,
+        deliveryRegion: order.region,
+        items: [{ name: productName, qty: order.quantity, unitPrice: 7 }],
+        subtotal: totals.subtotal,
+        deliveryFee: totals.deliveryFee,
+        total: totals.grandTotal,
+        status: order.status,
+        notes: order.instructions || "",
+      }),
+    });
+    if (!res.ok) {
+      console.error("[Factory Push] Order push failed:", res.status, await res.text().catch(() => ""));
+    }
+  } catch (err) {
+    console.error("[Factory Push] Order push network error:", err.message);
+  }
+}
+
+// Fires on payment confirmation and on any admin status/paid change — sends
+// only a status update, not a duplicate order (matched by invoiceNumber).
+async function pushOrderStatusToFactory(order) {
+  if (!FACTORY_PUSH_ENABLED) return;
+  try {
+    const res = await fetch(`${FACTORY_API_BASE}/api/store/external-orders/${encodeURIComponent(order.invoiceNumber)}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-api-key": FACTORY_API_KEY },
+      body: JSON.stringify({ status: order.status, paid: order.paymentStatus === "paid" }),
+    });
+    if (!res.ok) {
+      console.error("[Factory Push] Status push failed:", res.status, await res.text().catch(() => ""));
+    }
+  } catch (err) {
+    console.error("[Factory Push] Status push network error:", err.message);
+  }
+}
+
+// ============================================
 // MONGODB CONNECTION (with retry + connection event logging)
 // ============================================
 mongoose.set("strictQuery", true);
@@ -667,6 +743,12 @@ app.post("/order", attachUserIfPresent, asyncHandler(async (req, res) => {
     statusHistory: [{ status: "received", note: "Order placed by customer" }]
   });
   await order.save();
+
+  // Fire-and-forget: pushes this order to the factory management system so
+  // it shows up in its Online Orders tab. Not awaited — never delays or
+  // risks the customer's own checkout response.
+  pushOrderToFactory(order, { subtotal, deliveryFee, grandTotal });
+
   res.status(201).json({ message: "Order placed!", order });
 }));
 
@@ -691,6 +773,8 @@ app.patch("/order/:id/payment", asyncHandler(async (req, res) => {
     order.statusHistory.push({ status: "confirmed", note: `Payment received via ${paymentMethod}` });
   }
   await order.save();
+
+  pushOrderStatusToFactory(order);
 
   if (!isCash) {
     triggerPaidOrderEmails(order).catch((err) => console.error("Paid-order email error:", err.message));
@@ -763,6 +847,8 @@ app.patch("/admin/orders/:id/status", ...requireStaff, asyncHandler(async (req, 
   order.statusHistory.push({ status, note: note || `Status updated by ${req.user.email}` });
   await order.save();
 
+  pushOrderStatusToFactory(order);
+
   res.json({ message: "Order status updated", order });
 }));
 
@@ -791,6 +877,8 @@ app.patch("/admin/orders/:id/paid", ...requireAdmin, asyncHandler(async (req, re
   order.status = "confirmed";
   order.statusHistory.push({ status: "confirmed", note: `Marked paid by ${req.user.email}` });
   await order.save();
+
+  pushOrderStatusToFactory(order);
 
   triggerPaidOrderEmails(order).catch((err) => console.error("Paid-order email error:", err.message));
 
